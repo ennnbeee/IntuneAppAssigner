@@ -1,21 +1,93 @@
-#region Functions
-[CmdletBinding()]
+<#PSScriptInfo
+
+.VERSION 0.5
+.GUID 63c8809e-5c8a-4ddc-82a4-29706992802f
+.AUTHOR Nick Benton
+.COMPANYNAME
+.COPYRIGHT GPL
+.TAGS Graph Intune Windows Autopilot GroupTags
+.LICENSEURI https://github.com/ennnbeee/AutopilotGroupTagger/blob/main/LICENSE
+.PROJECTURI https://github.com/ennnbeee/AutopilotGroupTagger
+.ICONURI https://raw.githubusercontent.com/ennnbeee/AutopilotGroupTagger/refs/heads/main/img/agt-icon.png
+.EXTERNALMODULEDEPENDENCIES Microsoft.Graph.Authentication
+.REQUIREDSCRIPTS
+.EXTERNALSCRIPTDEPENDENCIES
+.RELEASENOTES
+v0.1 - Initial release
+v0.2 - Included functionality to update group tags based on Purchase order
+v0.3 - Updated logic around Autopilot device selection
+v0.4 - Configured to run on PowerShell 5
+v0.4.1 - Updated authentication and module detection
+v0.4.2 - Bug fixes and improvements
+v0.4.3 - Improvements to user interface and error handling
+v0.4.4 - Added 'WhatIf' mode, and updated user experience of output of the progress of Group Tag updates
+v0.4.5 - Function rework to support PowerShell gallery requirements
+v0.5 - Now supports PowerShell 7 on macOS, removal of Group Tags, and Dynamic Group creation
+
+.PRIVATEDATA
+#>
+
+<#
+.SYNOPSIS
+Autopilot GroupTagger - Update Autopilot Device Group Tags in bulk.
+
+.DESCRIPTION
+The Autopilot GroupTagger script is designed to allow for bulk updating of Autopilot device group tags in Microsoft Intune.
+The script will connect to the Microsoft Graph API and retrieve all Autopilot devices, then allow for bulk updating of group tags based on various criteria.
+
+.PARAMETER whatIf
+Switch to enable WhatIf mode to simulate changes.
+
+.PARAMETER createGroups
+Switch to enable the creation of dynamic groups based on Group Tags.
+
+.PARAMETER tenantId
+Provide the Id of the Entra ID tenant to connect to.
+
+.PARAMETER appId
+Provide the Id of the Entra App registration to be used for authentication.
+
+.PARAMETER appSecret
+Provide the App secret to allow for authentication to graph
+
+.EXAMPLE
+Interactive Authentication
+.\AutopilotGroupTagger.ps1
+
+.EXAMPLE
+Pass through Authentication
+.\AutopilotGroupTagger.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099'
+
+.EXAMPLE
+App Authentication
+.\AutopilotGroupTagger.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099' -appId '799ebcfa-ca81-4e72-baaf-a35126464d67' -appSecret 'g708Q~uof4xo9dU_1EjGQIuUr0UyBHNZmY2mcdy6'
+
+.NOTES
+Version:        0.5
+Author:         Nick Benton
+WWW:            oddsandendpoints.co.uk
+Creation Date:  10/02/2025
+#>
+
+
+[CmdletBinding(DefaultParameterSetName = 'Default')]
 
 param(
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false, HelpMessage = 'Provide the Id of the Entra ID tenant to connect to')]
+    [ValidateLength(36, 36)]
     [String]$tenantId,
 
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'appAuth', HelpMessage = 'Provide the Id of the Entra App registration to be used for authentication')]
+    [ValidateLength(36, 36)]
     [String]$appId,
 
-    [Parameter(Mandatory = $false)]
-    [String]$appSecret,
-
-    [Parameter(Mandatory = $false)]
-    [String[]]$scopes = 'DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementApps.ReadWrite.All'
+    [Parameter(Mandatory = $true, ParameterSetName = 'appAuth', HelpMessage = 'Provide the App secret to allow for authentication to graph')]
+    [ValidateNotNullOrEmpty()]
+    [String]$appSecret
 
 )
+
 #region Functions
 Function Connect-ToGraph {
     <#
@@ -25,8 +97,8 @@ Authenticates to the Graph API via the Microsoft.Graph.Authentication module.
 .DESCRIPTION
 The Connect-ToGraph cmdlet is a wrapper cmdlet that helps authenticate to the Intune Graph API using the Microsoft.Graph.Authentication module. It leverages an Azure AD app ID and app secret for authentication or user-based auth.
 
-.PARAMETER Tenant
-Specifies the tenant (e.g. contoso.onmicrosoft.com) to which to authenticate.
+.PARAMETER TenantId
+Specifies the tenantId from Entra ID to which to authenticate.
 
 .PARAMETER AppId
 Specifies the Azure AD app ID (GUID) for the application that will be used to authenticate.
@@ -41,6 +113,7 @@ Specifies the user scopes for interactive authentication.
 Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
 
 -#>
+
     [cmdletbinding()]
     param
     (
@@ -67,14 +140,14 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
 
             if ($version -eq 2) {
                 Write-Host 'Version 2 module detected'
-                $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
+                $accessTokenFinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
             }
             else {
                 Write-Host 'Version 1 Module Detected'
                 Select-MgProfile -Name Beta
-                $accesstokenfinal = $accessToken
+                $accessTokenFinal = $accessToken
             }
-            $graph = Connect-MgGraph -AccessToken $accesstokenfinal
+            $graph = Connect-MgGraph -AccessToken $accessTokenFinal
             Write-Host "Connected to Intune tenant $TenantId using app-based authentication (Azure AD authentication not supported)"
         }
         else {
@@ -90,7 +163,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
         }
     }
 }
-Function Get-MobileApps() {
+Function Get-MobileApp() {
     [cmdletbinding()]
 
     $graphApiVersion = 'Beta'
@@ -126,19 +199,19 @@ Function Get-MDMGroup() {
     param
     (
         [parameter(Mandatory = $true)]
-        [string]$GroupName
+        [string]$groupName
     )
 
     $graphApiVersion = 'beta'
     $Resource = 'groups'
 
     try {
-        $searchterm = 'search="displayName:' + $GroupName + '"'
-        $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?$searchterm"
+        $searchTerm = 'search="displayName:' + $groupName + '"'
+        $uri = "https://graph.microsoft.com/$graphApiVersion/$Resource`?$searchTerm"
         (Invoke-MgGraphRequest -Uri $uri -Method Get -Headers @{ConsistencyLevel = 'eventual' }).Value
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -207,6 +280,7 @@ Function Add-ApplicationAssignment() {
         [ValidateNotNullOrEmpty()]
         $InstallIntent,
 
+        [parameter(Mandatory = $false)]
         $FilterID,
 
         [ValidateSet('Include', 'Exclude')]
@@ -315,43 +389,105 @@ Function Add-ApplicationAssignment() {
 
 #endregion
 
-#region app auth
-$graphModule = 'Microsoft.Graph.Authentication'
-Write-Host "Checking for $graphModule PowerShell module..." -ForegroundColor Cyan
+#region intro
+Write-Host '
+ _______         __                __ __         __
+|   _   |.--.--.|  |_.-----.-----.|__|  |.-----.|  |_
+|       ||  |  ||   _|  _  |  _  ||  |  ||  _  ||   _|
+|___|___||_____||____|_____|   __||__|__||_____||____|
+                           |__|
+' -ForegroundColor Cyan
+Write-Host '
+ _______                          _______
+|     __|.----.-----.--.--.-----.|_     _|.---.-.-----.-----.-----.----.
+|    |  ||   _|  _  |  |  |  _  |  |   |  |  _  |  _  |  _  |  -__|   _|
+|_______||__| |_____|_____|   __|  |___|  |___._|___  |___  |_____|__|
+                          |__|                  |_____|_____|
+' -ForegroundColor Red
 
-If (!(Find-Module -Name $graphModule)) {
-    Install-Module -Name $graphModule -Scope CurrentUser
-}
-Write-Host "PowerShell Module $graphModule found." -ForegroundColor Green
+Write-Host 'Intune AppAssigner - Update Mobile Apps Assignments in bulk.' -ForegroundColor Green
+Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.1 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-03-17' -ForegroundColor Magenta
+Write-Host ''
+Write-Host 'If you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues' -ForegroundColor Cyan
+Write-Host ''
+#endregion intro
 
-if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | Where-Object FullName -Like "*$graphModule*")) {
-    Import-Module -Name $graphModule -Force
-}
+#region variables
+$scopes = 'DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementApps.ReadWrite.All'
+$requiredScopes = @('Device.Read.All', 'DeviceManagementServiceConfig.ReadWrite.All', 'DeviceManagementManagedDevices.Read.All', 'Group.ReadWrite.All')
+[String[]]$scopes = $requiredScopes -join ', '
+$rndWait = Get-Random -Minimum 1 -Maximum 2
+#endregion variables
 
-if (Get-MgContext) {
-    Write-Host 'Disconnecting from existing Graph session.' -ForegroundColor Cyan
-    Disconnect-MgGraph
-}
-if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
-    Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
-    Connect-ToGraph -tenantId $tenantId -Scopes $scopes
-    $existingScopes = (Get-MgContext).Scopes
-    Write-Host 'Disconnecting from Graph to allow for changes to consent requirements' -ForegroundColor Cyan
-    Disconnect-MgGraph
-    Write-Host 'Connecting to Graph' -ForegroundColor Cyan
-    Connect-ToGraph -tenantId $tenantId -Scopes $existingScopes
+#region module check
+if ($PSVersionTable.PSVersion.Major -eq 7) {
+    $modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
 }
 else {
-    Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
-    Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret
+    $modules = @('Microsoft.Graph.Authentication')
+}
+foreach ($module in $modules) {
+    Write-Host "Checking for $module PowerShell module..." -ForegroundColor Cyan
+    Write-Host ''
+    If (!(Get-Module -Name $module -ListAvailable)) {
+        Install-Module -Name $module -Scope CurrentUser -AllowClobber
+    }
+    Write-Host "PowerShell Module $module found." -ForegroundColor Green
+    Write-Host ''
+    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | Where-Object FullName -Like "*$module*")) {
+        Import-Module -Name $module -Force
+    }
+}
+#endregion module check
+
+#region app auth
+try {
+    if (!$tenantId) {
+        Write-Host 'Connecting using interactive authentication' -ForegroundColor Yellow
+        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+    }
+    else {
+        if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+            Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
+            Connect-ToGraph -tenantId $tenantId -Scopes $scopes -ErrorAction Stop
+        }
+        else {
+            Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
+            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -ErrorAction Stop
+        }
+    }
+    $context = Get-MgContext
+    Write-Host ''
+    Write-Host "Successfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
+}
+catch {
+    Write-Error $_.Exception.Message
+    Exit
 }
 #endregion app auth
+
+#region scopes
+$currentScopes = $context.Scopes
+# Validate required permissions
+$missingScopes = $requiredScopes | Where-Object { $_ -notin $currentScopes }
+if ($missingScopes.Count -gt 0) {
+    Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Red
+    $missingScopes | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+    Write-Host ''
+    Write-Host 'Please ensure these permissions are granted to the app registration for full functionality.' -ForegroundColor Yellow
+    exit
+}
+Write-Host ''
+Write-Host 'All required scope permissions are present.' -ForegroundColor Green
+#endregion scopes
 
 Do {
 
     #region Script
     Clear-Host
-    $sleep = '1'
+    $rndWait = '1'
     Write-Host '************************************************************************************'
     Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
     Write-Host '****    Please select the Mobile App type to Assign                             ****' -ForegroundColor Cyan
@@ -381,13 +517,13 @@ Do {
     }
 
     Write-Host 'Please select the Apps you wish to modify assignments from the pop-up' -ForegroundColor Cyan
-    Start-Sleep -Seconds $sleep
-    $Apps = @(Get-MobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
+    Start-Sleep -Seconds $rndWait
+    $Apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
     while ($Apps.count -eq 0) {
-        $Apps = @(Get-MobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
+        $Apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
     }
     Clear-Host
-    Start-Sleep -Seconds $sleep
+    Start-Sleep -Seconds $rndWait
     Write-Host '************************************************************************************'
     Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
     Write-Host '****    This Script will allow bulk assignment of Apps to User and Devices      ****' -ForegroundColor Cyan
@@ -418,7 +554,7 @@ Do {
 
 
     Clear-Host
-    Start-Sleep -Seconds $sleep
+    Start-Sleep -Seconds $rndWait
     Write-Host '************************************************************************************'
     Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
     Write-Host '****    Select the Assignment Group                                             ****' -ForegroundColor Cyan
@@ -452,11 +588,11 @@ Do {
         $InstallIntent = 'Remove'
     }
     Clear-Host
-    Start-Sleep -Seconds $sleep
+    Start-Sleep -Seconds $rndWait
 
     if ($InstallIntent -ne 'Remove') {
         Clear-Host
-        Start-Sleep -Seconds $sleep
+        Start-Sleep -Seconds $rndWait
         Write-Host '************************************************************************************'
         Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
         Write-Host '****    Select the Assignment Group                                             ****' -ForegroundColor Cyan
@@ -500,9 +636,9 @@ Do {
                 $GroupName = Read-Host 'Please enter a search term for the Assignment Group'
             }
             Write-Host
-            Start-Sleep -Seconds $sleep
+            Start-Sleep -Seconds $rndWait
             Write-Host 'Please select the Group for the assignment...' -ForegroundColor Cyan
-            Start-Sleep -Seconds $sleep
+            Start-Sleep -Seconds $rndWait
             $Group = Get-MDMGroup -GroupName $GroupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
 
             while ($Group.Count -gt 1) {
@@ -511,7 +647,7 @@ Do {
             }
         }
         Clear-Host
-        Start-Sleep -Seconds $sleep
+        Start-Sleep -Seconds $rndWait
         Write-Host '************************************************************************************'
         Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
         Write-Host '****    Select the Device Filter                                                ****' -ForegroundColor Cyan
@@ -546,10 +682,10 @@ Do {
         if ($ChoiceE_Number -eq '3') {
             $Filtering = 'No'
         }
-        Start-Sleep -Seconds $sleep
+        Start-Sleep -Seconds $rndWait
         If ($Filtering -eq 'Yes') {
             Write-Host 'Please select the Device Filter for the assignment...' -ForegroundColor Cyan
-            Start-Sleep -Seconds $sleep
+            Start-Sleep -Seconds $rndWait
             $Filter = Get-DeviceFilter | Where-Object { ($_.platform) -like ("*$AppType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
 
             while ($Filter.Count -gt 1) {
@@ -559,7 +695,7 @@ Do {
         }
     }
     Clear-Host
-    Start-Sleep -Seconds $sleep
+    Start-Sleep -Seconds $rndWait
     Write-Host 'The following Apps have been selected:' -ForegroundColor Cyan
     $($Apps.'App Name') | Format-List
     Write-Host
@@ -587,7 +723,7 @@ Do {
     Write-Host
     Write-Warning 'Please confirm these settings are correct before continuing' -WarningAction Inquire
     Clear-Host
-    Start-Sleep -Seconds $sleep
+    Start-Sleep -Seconds $rndWait
 
     If ($InstallIntent -ne 'Remove') {
         If ($AssignmentType -eq 'Group') {
