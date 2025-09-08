@@ -1,45 +1,30 @@
 <#PSScriptInfo
 
-.VERSION 0.5
-.GUID 63c8809e-5c8a-4ddc-82a4-29706992802f
+.VERSION 0.1
+.GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
 .COPYRIGHT GPL
 .TAGS Graph Intune Windows Autopilot GroupTags
-.LICENSEURI https://github.com/ennnbeee/AutopilotGroupTagger/blob/main/LICENSE
-.PROJECTURI https://github.com/ennnbeee/AutopilotGroupTagger
-.ICONURI https://raw.githubusercontent.com/ennnbeee/AutopilotGroupTagger/refs/heads/main/img/agt-icon.png
+.LICENSEURI https://github.com/ennnbeee/IntuneAppAssigner/blob/main/LICENSE
+.PROJECTURI https://github.com/ennnbeee/IntuneAppAssigner
+.ICONURI https://raw.githubusercontent.com/ennnbeee/IntuneAppAssigner/refs/heads/main/img/iaa-icon.png
 .EXTERNALMODULEDEPENDENCIES Microsoft.Graph.Authentication
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
 v0.1 - Initial release
-v0.2 - Included functionality to update group tags based on Purchase order
-v0.3 - Updated logic around Autopilot device selection
-v0.4 - Configured to run on PowerShell 5
-v0.4.1 - Updated authentication and module detection
-v0.4.2 - Bug fixes and improvements
-v0.4.3 - Improvements to user interface and error handling
-v0.4.4 - Added 'WhatIf' mode, and updated user experience of output of the progress of Group Tag updates
-v0.4.5 - Function rework to support PowerShell gallery requirements
-v0.5 - Now supports PowerShell 7 on macOS, removal of Group Tags, and Dynamic Group creation
 
 .PRIVATEDATA
 #>
 
 <#
 .SYNOPSIS
-Autopilot GroupTagger - Update Autopilot Device Group Tags in bulk.
+
 
 .DESCRIPTION
-The Autopilot GroupTagger script is designed to allow for bulk updating of Autopilot device group tags in Microsoft Intune.
-The script will connect to the Microsoft Graph API and retrieve all Autopilot devices, then allow for bulk updating of group tags based on various criteria.
-
-.PARAMETER whatIf
-Switch to enable WhatIf mode to simulate changes.
-
-.PARAMETER createGroups
-Switch to enable the creation of dynamic groups based on Group Tags.
+The IntuneAppAssigner script is a PowerShell tool designed to facilitate the bulk assignment of mobile applications within Microsoft Intune.
+It provides an interactive interface for administrators to select applications, define assignment parameters, and apply these settings across user and device groups efficiently.
 
 .PARAMETER tenantId
 Provide the Id of the Entra ID tenant to connect to.
@@ -52,23 +37,22 @@ Provide the App secret to allow for authentication to graph
 
 .EXAMPLE
 Interactive Authentication
-.\AutopilotGroupTagger.ps1
+.\IntuneAppAssigner.ps1
 
 .EXAMPLE
 Pass through Authentication
-.\AutopilotGroupTagger.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099'
+.\IntuneAppAssigner.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099'
 
 .EXAMPLE
 App Authentication
-.\AutopilotGroupTagger.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099' -appId '799ebcfa-ca81-4e72-baaf-a35126464d67' -appSecret 'g708Q~uof4xo9dU_1EjGQIuUr0UyBHNZmY2mcdy6'
+.\IntuneAppAssigner.ps1-tenantId '437e8ffb-3030-469a-99da-e5b527908099' -appId '799ebcfa-ca81-4e72-baaf-a35126464d67' -appSecret 'g708Q~uof4xo9dU_1EjGQIuUr0UyBHNZmY2mcdy6'
 
 .NOTES
-Version:        0.5
+Version:        0.1
 Author:         Nick Benton
 WWW:            oddsandendpoints.co.uk
 Creation Date:  10/02/2025
 #>
-
 
 [CmdletBinding(DefaultParameterSetName = 'Default')]
 
@@ -84,12 +68,12 @@ param(
 
     [Parameter(Mandatory = $true, ParameterSetName = 'appAuth', HelpMessage = 'Provide the App secret to allow for authentication to graph')]
     [ValidateNotNullOrEmpty()]
-    [String]$appSecret
+    [String]$appsecret
 
 )
 
 #region Functions
-Function Connect-ToGraph {
+function Connect-ToGraph {
     <#
 .SYNOPSIS
 Authenticates to the Graph API via the Microsoft.Graph.Authentication module.
@@ -119,11 +103,11 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
     (
         [Parameter(Mandatory = $false)] [string]$tenantId,
         [Parameter(Mandatory = $false)] [string]$appId,
-        [Parameter(Mandatory = $false)] [string]$appSecret,
+        [Parameter(Mandatory = $false)] [string]$appsecret,
         [Parameter(Mandatory = $false)] [string[]]$scopes
     )
 
-    Process {
+    process {
         Import-Module Microsoft.Graph.Authentication
         $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).major
 
@@ -131,7 +115,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
             $body = @{
                 grant_type    = 'client_credentials';
                 client_id     = $appId;
-                client_secret = $appSecret;
+                client_secret = $appsecret;
                 scope         = 'https://graph.microsoft.com/.default';
             }
 
@@ -163,7 +147,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
         }
     }
 }
-Function Get-MobileApp() {
+function Get-MobileApp() {
     [cmdletbinding()]
 
     $graphApiVersion = 'Beta'
@@ -171,28 +155,28 @@ Function Get-MobileApp() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
-Function Get-DeviceFilter() {
+function Get-AssignmentFilter() {
 
     $graphApiVersion = 'beta'
     $Resource = 'deviceManagement/assignmentFilters'
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-            (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
         Write-Error $Error[0].ErrorDetails.Message
         break
     }
 }
-Function Get-MDMGroup() {
+function Get-MDMGroup() {
 
     [cmdletbinding()]
 
@@ -215,7 +199,7 @@ Function Get-MDMGroup() {
         break
     }
 }
-Function Get-ApplicationAssignment() {
+function Get-AppAssignment() {
 
     [cmdletbinding()]
 
@@ -237,7 +221,7 @@ Function Get-ApplicationAssignment() {
         break
     }
 }
-Function Remove-ApplicationAssignment() {
+function Remove-AppAssignment() {
 
     [cmdletbinding()]
 
@@ -261,7 +245,7 @@ Function Remove-ApplicationAssignment() {
         break
     }
 }
-Function Add-ApplicationAssignment() {
+function Add-AppAssignment() {
 
     [cmdletbinding()]
 
@@ -278,13 +262,13 @@ Function Add-ApplicationAssignment() {
         [parameter(Mandatory = $true)]
         [ValidateSet('Available', 'Required')]
         [ValidateNotNullOrEmpty()]
-        $InstallIntent,
+        $installIntent,
 
         [parameter(Mandatory = $false)]
         $FilterID,
 
         [ValidateSet('Include', 'Exclude')]
-        $FilterMode,
+        $filterMode,
 
         [parameter(Mandatory = $false)]
         [ValidateSet('Users', 'Devices')]
@@ -302,22 +286,22 @@ Function Add-ApplicationAssignment() {
     try {
         $TargetGroups = @()
 
-        If ($Action -eq 'Add') {
+        if ($action -eq 'Add') {
             # Checking if there are Assignments already configured
-            $Assignments = (Get-ApplicationAssignment -Id $Id).assignments
+            $Assignments = (Get-AppAssignment -Id $Id).assignments
             if (@($Assignments).count -ge 1) {
                 foreach ($Assignment in $Assignments) {
 
-                    If (($null -ne $TargetGroupId) -and ($TargetGroupId -eq $Assignment.target.groupId)) {
+                    if (($null -ne $TargetGroupId) -and ($TargetGroupId -eq $Assignment.target.groupId)) {
                         Write-Host 'The App is already assigned to the Group' -ForegroundColor Yellow
                     }
-                    ElseIf (($All -eq 'Devices') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allDevicesAssignmentTarget')) {
+                    elseif (($All -eq 'Devices') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allDevicesAssignmentTarget')) {
                         Write-Host 'The App is already assigned to the All Devices Group' -ForegroundColor Yellow
                     }
-                    ElseIf (($All -eq 'Users') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allLicensedUsersAssignmentTarget')) {
+                    elseif (($All -eq 'Users') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allLicensedUsersAssignmentTarget')) {
                         Write-Host 'The App is already assigned to the All Users Group' -ForegroundColor Yellow
                     }
-                    Else {
+                    else {
                         $TargetGroup = New-Object -TypeName psobject
 
                         if (($Assignment.target).'@odata.type' -eq '#microsoft.graph.groupAssignmentTarget') {
@@ -350,7 +334,7 @@ Function Add-ApplicationAssignment() {
 
         $Target = New-Object -TypeName psobject
         $Target | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.mobileAppAssignment'
-        $Target | Add-Member -MemberType NoteProperty -Name 'intent' -Value $InstallIntent
+        $Target | Add-Member -MemberType NoteProperty -Name 'intent' -Value $installIntent
 
         $TargetGroup = New-Object -TypeName psobject
         if ($TargetGroupId) {
@@ -361,14 +345,14 @@ Function Add-ApplicationAssignment() {
             if ($All -eq 'Users') {
                 $TargetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.allLicensedUsersAssignmentTarget'
             }
-            ElseIf ($All -eq 'Devices') {
+            elseif ($All -eq 'Devices') {
                 $TargetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.allDevicesAssignmentTarget'
             }
         }
 
-        if ($FilterMode) {
+        if ($filterMode) {
             $TargetGroup | Add-Member -MemberType NoteProperty -Name 'deviceAndAppManagementAssignmentFilterId' -Value $FilterID
-            $TargetGroup | Add-Member -MemberType NoteProperty -Name 'deviceAndAppManagementAssignmentFilterType' -Value $FilterMode
+            $TargetGroup | Add-Member -MemberType NoteProperty -Name 'deviceAndAppManagementAssignmentFilterType' -Value $filterMode
         }
 
         $Target | Add-Member -MemberType NoteProperty -Name 'target' -Value $TargetGroup
@@ -386,26 +370,11 @@ Function Add-ApplicationAssignment() {
         break
     }
 }
-
-#endregion
+#endregion Functions
 
 #region intro
-Write-Host '
- _______         __                __ __         __
-|   _   |.--.--.|  |_.-----.-----.|__|  |.-----.|  |_
-|       ||  |  ||   _|  _  |  _  ||  |  ||  _  ||   _|
-|___|___||_____||____|_____|   __||__|__||_____||____|
-                           |__|
-' -ForegroundColor Cyan
-Write-Host '
- _______                          _______
-|     __|.----.-----.--.--.-----.|_     _|.---.-.-----.-----.-----.----.
-|    |  ||   _|  _  |  |  |  _  |  |   |  |  _  |  _  |  _  |  -__|   _|
-|_______||__| |_____|_____|   __|  |___|  |___._|___  |___  |_____|__|
-                          |__|                  |_____|_____|
-' -ForegroundColor Red
 
-Write-Host 'Intune AppAssigner - Update Mobile Apps Assignments in bulk.' -ForegroundColor Green
+Write-Host 'IntuneAppAssigner - Update Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
 Write-Host ' | Version' -NoNewline; Write-Host ' 0.1 Public Preview' -ForegroundColor Yellow -NoNewline
 Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-03-17' -ForegroundColor Magenta
@@ -415,8 +384,7 @@ Write-Host ''
 #endregion intro
 
 #region variables
-$scopes = 'DeviceManagementManagedDevices.ReadWrite.All,DeviceManagementConfiguration.ReadWrite.All,DeviceManagementApps.ReadWrite.All'
-$requiredScopes = @('Device.Read.All', 'DeviceManagementServiceConfig.ReadWrite.All', 'DeviceManagementManagedDevices.Read.All', 'Group.ReadWrite.All')
+$requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All')
 [String[]]$scopes = $requiredScopes -join ', '
 $rndWait = Get-Random -Minimum 1 -Maximum 2
 #endregion variables
@@ -431,7 +399,7 @@ else {
 foreach ($module in $modules) {
     Write-Host "Checking for $module PowerShell module..." -ForegroundColor Cyan
     Write-Host ''
-    If (!(Get-Module -Name $module -ListAvailable)) {
+    if (!(Get-Module -Name $module -ListAvailable)) {
         Install-Module -Name $module -Scope CurrentUser -AllowClobber
     }
     Write-Host "PowerShell Module $module found." -ForegroundColor Green
@@ -449,13 +417,13 @@ try {
         Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
     }
     else {
-        if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+        if ((!$appId -and !$appsecret) -or ($appId -and !$appsecret) -or (!$appId -and $appsecret)) {
             Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
             Connect-ToGraph -tenantId $tenantId -Scopes $scopes -ErrorAction Stop
         }
         else {
             Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
-            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -ErrorAction Stop
+            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appsecret -ErrorAction Stop
         }
     }
     $context = Get-MgContext
@@ -464,7 +432,7 @@ try {
 }
 catch {
     Write-Error $_.Exception.Message
-    Exit
+    exit
 }
 #endregion app auth
 
@@ -483,13 +451,11 @@ Write-Host ''
 Write-Host 'All required scope permissions are present.' -ForegroundColor Green
 #endregion scopes
 
-Do {
+do {
 
     #region Script
     Clear-Host
-    $rndWait = '1'
     Write-Host '************************************************************************************'
-    Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
     Write-Host '****    Please select the Mobile App type to Assign                             ****' -ForegroundColor Cyan
     Write-Host '************************************************************************************'
     Write-Host
@@ -501,32 +467,37 @@ Do {
     Write-Host
     Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
     Write-Host
-    $ChoiceA_Number = ''
-    $ChoiceA_Number = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
-    while ( !($ChoiceA_Number -eq '1' -or $ChoiceA_Number -eq '2' -or $ChoiceA_Number -eq 'E')) {
-        $ChoiceA_Number = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
+    $choiceAppType = ''
+    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
+    while ( $choiceAppType -notin ('1', '2', 'E')) {
+        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
     }
-    if ($ChoiceA_Number -eq 'E') {
-        Break
+    if ($choiceAppType -eq 'E') {
+        break
     }
-    if ($ChoiceA_Number -eq '1') {
-        $AppType = 'android'
+    if ($choiceAppType -eq '1') {
+        $appType = 'android'
     }
-    if ($ChoiceA_Number -eq '2') {
-        $AppType = 'ios'
+    if ($choiceAppType -eq '2') {
+        $appType = 'ios'
     }
 
-    Write-Host 'Please select the Apps you wish to modify assignments from the pop-up' -ForegroundColor Cyan
+    Write-Host 'Please select the Apps you wish to modify assignments' -ForegroundColor Cyan
     Start-Sleep -Seconds $rndWait
-    $Apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
-    while ($Apps.count -eq 0) {
-        $Apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($AppType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
+    $apps = @()
+    while ($apps.count -eq 0) {
+        if ($PSVersionTable.PSVersion.Major -eq 7) {
+            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Apps to Assign...' -OutputMode Multiple)
+
+        }
+        else {
+            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
+        }
     }
     Clear-Host
     Start-Sleep -Seconds $rndWait
     Write-Host '************************************************************************************'
-    Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
-    Write-Host '****    This Script will allow bulk assignment of Apps to User and Devices      ****' -ForegroundColor Cyan
+    Write-Host '****    Select the assignment type                                              ****' -ForegroundColor Cyan
     Write-Host '************************************************************************************'
     Write-Host
     Write-Host ' Please Choose one of the options below:' -ForegroundColor Yellow
@@ -537,27 +508,25 @@ Do {
     Write-Host
     Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
     Write-Host
-    $ChoiceB_Number = ''
-    $ChoiceB_Number = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
-    while ( !($ChoiceB_Number -eq '1' -or $ChoiceB_Number -eq '2' -or $ChoiceB_Number -eq 'E')) {
-        $ChoiceB_Number = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
+    $choiceAssignmentType = ''
+    $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
+    while ( ($choiceAssignmentType -notin ('1', '2', 'E'))) {
+        $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
     }
-    if ($ChoiceB_Number -eq 'E') {
-        Break
+    if ($choiceAssignmentType -eq 'E') {
+        break
     }
-    if ($ChoiceB_Number -eq '1') {
-        $Action = 'Replace'
+    if ($choiceAssignmentType -eq '1') {
+        $action = 'Replace'
     }
-    if ($ChoiceB_Number -eq '2') {
-        $Action = 'Add'
+    if ($choiceAssignmentType -eq '2') {
+        $action = 'Add'
     }
-
 
     Clear-Host
     Start-Sleep -Seconds $rndWait
     Write-Host '************************************************************************************'
-    Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
-    Write-Host '****    Select the Assignment Group                                             ****' -ForegroundColor Cyan
+    Write-Host '****    Select the Assignment Install Intent                                    ****' -ForegroundColor Cyan
     Write-Host '************************************************************************************'
     Write-Host
     Write-Host ' Please Choose one of the options below:' -ForegroundColor Yellow
@@ -570,32 +539,31 @@ Do {
     Write-Host
     Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
     Write-Host
-    $ChoiceC_Number = ''
-    $ChoiceC_Number = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
-    while ( !($ChoiceC_Number -eq '1' -or $ChoiceC_Number -eq '2' -or $ChoiceC_Number -eq '3' -or $ChoiceC_Number -eq 'E')) {
-        $ChoiceC_Number = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
+    $choiceInstallIntent = ''
+    $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
+    while ( !($choiceInstallIntent -eq '1' -or $choiceInstallIntent -eq '2' -or $choiceInstallIntent -eq '3' -or $choiceInstallIntent -eq 'E')) {
+        $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
     }
-    if ($ChoiceC_Number -eq 'E') {
-        Break
+    if ($choiceInstallIntent -eq 'E') {
+        break
     }
-    if ($ChoiceC_Number -eq '1') {
-        $InstallIntent = 'Required'
+    if ($choiceInstallIntent -eq '1') {
+        $installIntent = 'Required'
     }
-    if ($ChoiceC_Number -eq '2') {
-        $InstallIntent = 'Available'
+    if ($choiceInstallIntent -eq '2') {
+        $installIntent = 'Available'
     }
-    if ($ChoiceC_Number -eq '3') {
-        $InstallIntent = 'Remove'
+    if ($choiceInstallIntent -eq '3') {
+        $installIntent = 'Remove'
     }
     Clear-Host
     Start-Sleep -Seconds $rndWait
 
-    if ($InstallIntent -ne 'Remove') {
+    if ($installIntent -ne 'Remove') {
         Clear-Host
         Start-Sleep -Seconds $rndWait
         Write-Host '************************************************************************************'
-        Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
-        Write-Host '****    Select the Assignment Group                                             ****' -ForegroundColor Cyan
+        Write-Host '****    Select the Assignment Target                                            ****' -ForegroundColor Cyan
         Write-Host '************************************************************************************'
         Write-Host
         Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
@@ -608,49 +576,48 @@ Do {
         Write-Host
         Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
         Write-Host
-        $ChoiceD_Number = ''
-        $ChoiceD_Number = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
-        while ( !($ChoiceD_Number -eq '1' -or $ChoiceD_Number -eq '2' -or $ChoiceD_Number -eq '3' -or $ChoiceD_Number -eq 'E')) {
-            $ChoiceD_Number = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
+        $choiceAssignmentTarget = ''
+        $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
+        while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
+            $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
         }
-        if ($ChoiceD_Number -eq 'E') {
-            Break
+        if ($choiceAssignmentTarget -eq 'E') {
+            break
         }
-        if ($ChoiceD_Number -eq '1') {
-            $AssignmentType = 'Users'
+        if ($choiceAssignmentTarget -eq '1') {
+            $assignmentType = 'Users'
         }
-        if ($ChoiceD_Number -eq '2') {
-            $AssignmentType = 'Devices'
-            if ($ChoiceC_Number -eq 2) {
+        if ($choiceAssignmentTarget -eq '2') {
+            $assignmentType = 'Devices'
+            if ($choiceInstallIntent -eq 2) {
                 Write-Host "Assigning Apps as 'Available' to the 'All Devices' group will not work, please re-run the script and don't make the same mistake again..." -ForegroundColor Red
-                Break
+                break
             }
         }
-        if ($ChoiceD_Number -eq '3') {
-            $AssignmentType = 'Group'
-            if ($ChoiceC_Number -eq 2) {
+        if ($choiceAssignmentTarget -eq '3') {
+            $assignmentType = 'Group'
+            if ($choiceInstallIntent -eq 2) {
                 Write-Host "Assigning Apps as 'Available' to Device groups will not work, please ensure you select a group of Users" -ForegroundColor yellow
             }
-            $GroupName = Read-Host 'Please enter a search term for the Assignment Group'
-            While ($GroupName.Length -eq 0) {
-                $GroupName = Read-Host 'Please enter a search term for the Assignment Group'
+            $groupName = Read-Host 'Please enter a search term for the Assignment Group'
+            while ($groupName.Length -eq 0) {
+                $groupName = Read-Host 'Please enter a search term for the Assignment Group'
             }
             Write-Host
             Start-Sleep -Seconds $rndWait
             Write-Host 'Please select the Group for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
-            $Group = Get-MDMGroup -GroupName $GroupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
+            $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
 
-            while ($Group.Count -gt 1) {
+            while ($assignmentGroup.Count -gt 1) {
                 Write-Host 'Please select only one Group...' -ForegroundColor Yellow
-                $Group = Get-MDMGroup -GroupName $GroupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
+                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
             }
         }
         Clear-Host
         Start-Sleep -Seconds $rndWait
         Write-Host '************************************************************************************'
-        Write-Host '****    Welcome to the Microsoft Intune App Assignment Tool                     ****' -ForegroundColor Green
-        Write-Host '****    Select the Device Filter                                                ****' -ForegroundColor Cyan
+        Write-Host '****    Select the Assignment Filter                                            ****' -ForegroundColor Cyan
         Write-Host '************************************************************************************'
         Write-Host
         Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
@@ -663,60 +630,60 @@ Do {
         Write-Host
         Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
         Write-Host
-        $ChoiceE_Number = ''
-        $ChoiceE_Number = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
-        while ( !($ChoiceE_Number -eq '1' -or $ChoiceE_Number -eq '2' -or $ChoiceE_Number -eq '3' -or $ChoiceE_Number -eq 'E')) {
-            $ChoiceE_Number = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
+        $choiceAssignmentFilter = ''
+        $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
+        while ( $choiceAssignmentFilter -notin ('1', '2', '3', 'E')) {
+            $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
         }
-        if ($ChoiceE_Number -eq 'E') {
-            Break
+        if ($choiceAssignmentFilter -eq 'E') {
+            break
         }
-        if ($ChoiceE_Number -eq '1') {
-            $Filtering = 'Yes'
-            $FilterMode = 'Include'
+        if ($choiceAssignmentFilter -eq '1') {
+            $filtering = 'Yes'
+            $filterMode = 'Include'
         }
-        if ($ChoiceE_Number -eq '2') {
-            $Filtering = 'Yes'
-            $FilterMode = 'Exclude'
+        if ($choiceAssignmentFilter -eq '2') {
+            $filtering = 'Yes'
+            $filterMode = 'Exclude'
         }
-        if ($ChoiceE_Number -eq '3') {
-            $Filtering = 'No'
+        if ($choiceAssignmentFilter -eq '3') {
+            $filtering = 'No'
         }
         Start-Sleep -Seconds $rndWait
-        If ($Filtering -eq 'Yes') {
-            Write-Host 'Please select the Device Filter for the assignment...' -ForegroundColor Cyan
+        if ($filtering -eq 'Yes') {
+            Write-Host 'Please select the Assignment Filter for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
-            $Filter = Get-DeviceFilter | Where-Object { ($_.platform) -like ("*$AppType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
+            $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
 
-            while ($Filter.Count -gt 1) {
+            while ($assignmentFilter.Count -gt 1) {
                 Write-Host 'Please select only one Device Filter...' -ForegroundColor Yellow
-                $Filter = Get-DeviceFilter | Where-Object { ($_.platform) -like ("*$AppType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
+                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
             }
         }
     }
     Clear-Host
     Start-Sleep -Seconds $rndWait
     Write-Host 'The following Apps have been selected:' -ForegroundColor Cyan
-    $($Apps.'App Name') | Format-List
+    $($apps.'App Name') | Format-List
     Write-Host
-    If ($InstallIntent -ne 'Remove') {
+    if ($installIntent -ne 'Remove') {
         Write-Host 'The following Assignment Action has been selected:' -ForegroundColor Cyan
         Write-Host "$Action"
         Write-Host
         Write-Host 'The following Assignment Group has been selected:' -ForegroundColor Cyan
-        if ($AssignmentType -eq 'Group') {
-            Write-Host "$($Group.'Group Name')"
+        if ($assignmentType -eq 'Group') {
+            Write-Host "$($assignmentGroup.'Group Name')"
         }
-        Else {
-            Write-Host "All $AssignmentType"
+        else {
+            Write-Host "All $assignmentType"
         }
         Write-Host
-        if ($Filtering -eq 'Yes') {
+        if ($filtering -eq 'Yes') {
             Write-Host 'The following Device Filter has been selected:' -ForegroundColor Cyan
-            Write-Host "$($Filter.'Filter Name')"
+            Write-Host "$($assignmentFilter.'Filter Name')"
         }
     }
-    Else {
+    else {
         Write-Host 'Assignments will be removed.' -ForegroundColor Red
     }
 
@@ -725,46 +692,46 @@ Do {
     Clear-Host
     Start-Sleep -Seconds $rndWait
 
-    If ($InstallIntent -ne 'Remove') {
-        If ($AssignmentType -eq 'Group') {
-            If ($Filtering -eq 'Yes') {
-                foreach ($App in $Apps) {
-                    Add-ApplicationAssignment -Id $App.'App ID' -InstallIntent $InstallIntent -TargetGroupId $Group.'Group ID' -FilterMode $FilterMode -FilterID $Filter.'Filter ID' -Action $Action
-                    Write-Host "Successfully Assigned App: $($App.'App Name') as $InstallIntent to Group $($Group.'Group Name') with Filter $($Filter.'Filter Name')" -ForegroundColor Green
+    if ($installIntent -ne 'Remove') {
+        if ($assignmentType -eq 'Group') {
+            if ($filtering -eq 'Yes') {
+                foreach ($app in $apps) {
+                    Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -TargetGroupId $assignmentGroup.'Group ID' -FilterMode $filterMode -FilterID $assignmentFilter.'Filter ID' -Action $Action
+                    Write-Host "Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name') with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
                 }
             }
-            Else {
-                foreach ($App in $Apps) {
-                    Add-ApplicationAssignment -Id $App.'App ID' -InstallIntent $InstallIntent -TargetGroupId $Group.'Group ID' -Action $Action
-                    Write-Host "Successfully Assigned App: $($App.'App Name') as $InstallIntent to Group $($Group.'Group Name')" -ForegroundColor Green
+            else {
+                foreach ($app in $apps) {
+                    Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -TargetGroupId $assignmentGroup.'Group ID' -Action $Action
+                    Write-Host "Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name')" -ForegroundColor Green
                 }
             }
         }
-        Else {
-            If ($Filtering -eq 'Yes') {
-                foreach ($App in $Apps) {
-                    Add-ApplicationAssignment -Id $App.'App ID' -InstallIntent $InstallIntent -All $AssignmentType -FilterMode $FilterMode -FilterID $Filter.'Filter ID' -Action $Action
-                    Write-Host "Successfully Assigned App $($App.'App Name') as $InstallIntent to All $AssignmentType with Filter $($Filter.'Filter Name')" -ForegroundColor Green
+        else {
+            if ($filtering -eq 'Yes') {
+                foreach ($app in $apps) {
+                    Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -All $assignmentType -FilterMode $filterMode -FilterID $assignmentFilter.'Filter ID' -Action $Action
+                    Write-Host "Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
                 }
             }
-            Else {
-                foreach ($App in $Apps) {
-                    Add-ApplicationAssignment -Id $App.'App ID' -InstallIntent $InstallIntent -All $AssignmentType -Action $Action
-                    Write-Host "Successfully Assigned App $($App.'App Name') as $InstallIntent to All $AssignmentType" -ForegroundColor Green
+            else {
+                foreach ($app in $apps) {
+                    Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -All $assignmentType -Action $Action
+                    Write-Host "Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType" -ForegroundColor Green
                 }
             }
         }
     }
-    Else {
-        Foreach ($App in $Apps) {
-            $Assignments = (Get-ApplicationAssignment -Id $App.'App ID').assignments
+    else {
+        foreach ($app in $apps) {
+            $Assignments = (Get-AppAssignment -Id $app.'App ID').assignments
             foreach ($Assignment in $Assignments) {
-                Try {
-                    Remove-ApplicationAssignment -Id $App.'App ID' -AssignmentId $Assignment.id
-                    Write-Host "Successfully removed App Assignment from $($App.'App Name')" -ForegroundColor Green
+                try {
+                    Remove-AppAssignment -Id $app.'App ID' -AssignmentId $Assignment.id
+                    Write-Host "Successfully removed App Assignment from $($app.'App Name')" -ForegroundColor Green
                 }
-                Catch {
-                    Write-Host "Unable to remove App Assignment from $($App.'App Name')" -ForegroundColor Red
+                catch {
+                    Write-Host "Unable to remove App Assignment from $($app.'App Name')" -ForegroundColor Red
                 }
 
             }
@@ -784,8 +751,6 @@ Do {
     $Choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
 
     $Decision = $Host.UI.PromptForChoice($Title, $Question, $Choices, 1)
-
-
 
 }
 until ($Decision -eq 1)
