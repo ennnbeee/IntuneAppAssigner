@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.1
+.VERSION 0.1.0
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,14 +13,14 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
-v0.1 - Initial release
+v0.1.0 - Initial release
 
 .PRIVATEDATA
 #>
 
 <#
 .SYNOPSIS
-
+Allows for bulk assignment changes to Intune apps.
 
 .DESCRIPTION
 The IntuneAppAssigner script is a PowerShell tool designed to facilitate the bulk assignment of mobile applications within Microsoft Intune.
@@ -45,13 +45,8 @@ Pass through Authentication
 
 .EXAMPLE
 App Authentication
-.\IntuneAppAssigner.ps1-tenantId '437e8ffb-3030-469a-99da-e5b527908099' -appId '799ebcfa-ca81-4e72-baaf-a35126464d67' -appSecret 'g708Q~uof4xo9dU_1EjGQIuUr0UyBHNZmY2mcdy6'
+.\IntuneAppAssigner.ps1 -tenantId '437e8ffb-3030-469a-99da-e5b527908099' -appId '799ebcfa-ca81-4e72-baaf-a35126464d67' -appSecret 'g708Q~uof4xo9dU_1EjGQIuUr0UyBHNZmY2m3dy6'
 
-.NOTES
-Version:        0.1
-Author:         Nick Benton
-WWW:            oddsandendpoints.co.uk
-Creation Date:  10/02/2025
 #>
 
 [CmdletBinding(DefaultParameterSetName = 'Default')]
@@ -373,14 +368,26 @@ function Add-AppAssignment() {
 #endregion Functions
 
 #region intro
+Write-Host '
+ _______         __
+|_     _|.-----.|  |_.--.--.-----.-----.' -ForegroundColor Cyan -NoNewline
+Write-Host '
+ _|   |_ |     ||   _|  |  |     |  -__|' -ForegroundColor DarkCyan -NoNewline
+Write-Host '
+|_______||__|__||____|_____|__|__|_____|' -ForegroundColor blue
+Write-Host '
+ _______               _______               __
+|   _   |.-----.-----.|   _   |.-----.-----.|__|.-----.-----.-----.----.
+|       ||  _  |  _  ||       ||__ --|__ --||  ||  _  |     |  -__|   _|
+|___|___||   __|   __||___|___||_____|_____||__||___  |__|__|_____|__|
+         |__|  |__|                             |_____|
+' -ForegroundColor Green
 
 Write-Host 'IntuneAppAssigner - Update Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.1 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-03-17' -ForegroundColor Magenta
-Write-Host ''
-Write-Host 'If you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues' -ForegroundColor Cyan
-Write-Host ''
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.1.0 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-09' -ForegroundColor Magenta
+Write-Host "`nIf you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 #endregion intro
 
 #region variables
@@ -398,12 +405,10 @@ else {
 }
 foreach ($module in $modules) {
     Write-Host "Checking for $module PowerShell module..." -ForegroundColor Cyan
-    Write-Host ''
     if (!(Get-Module -Name $module -ListAvailable)) {
         Install-Module -Name $module -Scope CurrentUser -AllowClobber
     }
     Write-Host "PowerShell Module $module found." -ForegroundColor Green
-    Write-Host ''
     if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | Where-Object FullName -Like "*$module*")) {
         Import-Module -Name $module -Force
     }
@@ -427,8 +432,7 @@ try {
         }
     }
     $context = Get-MgContext
-    Write-Host ''
-    Write-Host "Successfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
+    Write-Host "`nSuccessfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
 }
 catch {
     Write-Error $_.Exception.Message
@@ -443,22 +447,19 @@ $missingScopes = $requiredScopes | Where-Object { $_ -notin $currentScopes }
 if ($missingScopes.Count -gt 0) {
     Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Red
     $missingScopes | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
-    Write-Host ''
-    Write-Host 'Please ensure these permissions are granted to the app registration for full functionality.' -ForegroundColor Yellow
+    Write-Host "`nPlease ensure these permissions are granted to the app registration for full functionality." -ForegroundColor Yellow
     exit
 }
-Write-Host ''
 Write-Host 'All required scope permissions are present.' -ForegroundColor Green
 #endregion scopes
 
 do {
-
     #region Script
     Clear-Host
     Write-Host "`n📱 Select which mobile app type:" -ForegroundColor White
-    Write-Host "`n(1) Android App Assignment" -ForegroundColor Green
-    Write-Host "`n(2) iOS/iPadOS App Assignment" -ForegroundColor Cyan
-    Write-Host "`n(E) Exit" -ForegroundColor Red
+    Write-Host "`n  (1) Android App Assignment" -ForegroundColor Green
+    Write-Host "`n  (2) iOS/iPadOS App Assignment" -ForegroundColor Cyan
+    Write-Host "`n  (E) Exit" -ForegroundColor Red
     $choiceAppType = ''
     $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter.'
     while ( $choiceAppType -notin ('1', '2', 'E')) {
@@ -474,24 +475,24 @@ do {
         $appType = 'ios'
     }
 
-    Write-Host 'Please select the Apps you wish to modify assignments' -ForegroundColor Cyan
+    Write-Host "Please select the $appType Apps you wish to modify assignments" -ForegroundColor Cyan
     Start-Sleep -Seconds $rndWait
     $apps = @()
     while ($apps.count -eq 0) {
         if ($PSVersionTable.PSVersion.Major -eq 7) {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Apps to Assign...' -OutputMode Multiple)
+            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Apps to Assign' -OutputMode Multiple)
 
         }
         else {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign...')
+            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Apps to Assign' -OutputMode Multiple)
         }
     }
     Clear-Host
     Start-Sleep -Seconds $rndWait
-    Write-Host "`nSelect the assignment action:" -ForegroundColor White
-    Write-Host "`n(1) Replace existing assignments" -ForegroundColor Yellow
-    Write-Host "`n(2) Add to existing assignments" -ForegroundColor Green
-    Write-Host "`n (E) Exit" -ForegroundColor Red
+    Write-Host "`n🔀  Select the assignment action:" -ForegroundColor White
+    Write-Host "`n   (1) Replace existing assignments" -ForegroundColor Yellow
+    Write-Host "`n   (2) Add to existing assignments" -ForegroundColor Green
+    Write-Host "`n   (E) Exit" -ForegroundColor Red
 
     $choiceAssignmentType = ''
     $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
@@ -510,20 +511,12 @@ do {
 
     Clear-Host
     Start-Sleep -Seconds $rndWait
-    Write-Host '************************************************************************************'
-    Write-Host '****    Select the Assignment Install Intent                                    ****' -ForegroundColor Cyan
-    Write-Host '************************************************************************************'
-    Write-Host
-    Write-Host ' Please Choose one of the options below:' -ForegroundColor Yellow
-    Write-Host
-    Write-Host " (1) Assign Apps as 'Required'" -ForegroundColor Green
-    Write-Host
-    Write-Host " (2) Assign Apps as 'Available'" -ForegroundColor Green
-    Write-Host
-    Write-Host ' (3) Remove All Assignments' -ForegroundColor Green
-    Write-Host
-    Write-Host "`n (E) Exit" -ForegroundColor Red
-    Write-Host
+    Write-Host "`n💽  Choose the installation intent:" -ForegroundColor White
+    Write-Host "`n   (1) Assign Apps as 'Required'" -ForegroundColor Green
+    Write-Host "`n   (2) Assign Apps as 'Available'" -ForegroundColor Green
+    Write-Host "`n   (3) Remove All Assignments" -ForegroundColor Green
+    Write-Host "`n   (E) Exit" -ForegroundColor Red
+
     $choiceInstallIntent = ''
     $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
     while ( !($choiceInstallIntent -eq '1' -or $choiceInstallIntent -eq '2' -or $choiceInstallIntent -eq '3' -or $choiceInstallIntent -eq 'E')) {
@@ -547,20 +540,11 @@ do {
     if ($installIntent -ne 'Remove') {
         Clear-Host
         Start-Sleep -Seconds $rndWait
-        Write-Host '************************************************************************************'
-        Write-Host '****    Select the Assignment Target                                            ****' -ForegroundColor Cyan
-        Write-Host '************************************************************************************'
-        Write-Host
-        Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
-        Write-Host
-        Write-Host " (1) Assign Apps to 'All Users'" -ForegroundColor Green
-        Write-Host
-        Write-Host " (2) Assign Apps to 'All Devices'" -ForegroundColor Green
-        Write-Host
-        Write-Host ' (3) Assign Apps to a Group' -ForegroundColor Green
-        Write-Host
-        Write-Host "`n (E) Exit" -ForegroundColor Red
-        Write-Host
+        Write-Host "`n🫂  Choose what groups to assign the apps: " -ForegroundColor White
+        Write-Host "`n   (1) Assign Apps to 'All Users'" -ForegroundColor Green
+        Write-Host "`n   (2) Assign Apps to 'All Devices'" -ForegroundColor Green
+        Write-Host "`n   (3) Assign Apps to a Group" -ForegroundColor Green
+        Write-Host "`n   (E) Exit" -ForegroundColor Red
         $choiceAssignmentTarget = ''
         $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
         while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
@@ -592,33 +576,23 @@ do {
             Start-Sleep -Seconds $rndWait
             Write-Host 'Please select the Group for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
-            $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
-
-            while ($assignmentGroup.Count -gt 1) {
-                Write-Host 'Please select only one Group...' -ForegroundColor Yellow
-                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Group...'
+            if ($PSVersionTable.PSVersion.Major -eq 7) {
+                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
+            }
+            else {
+                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Group' -OutputMode Single
             }
         }
         Clear-Host
         Start-Sleep -Seconds $rndWait
-        Write-Host '************************************************************************************'
-        Write-Host '****    Select the Assignment Filter                                            ****' -ForegroundColor Cyan
-        Write-Host '************************************************************************************'
-        Write-Host
-        Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
-        Write-Host
-        Write-Host ' (1) Include Device Filter' -ForegroundColor Green
-        Write-Host
-        Write-Host ' (2) Exclude Device Filter' -ForegroundColor Green
-        Write-Host
-        Write-Host ' (3) No Filters' -ForegroundColor Green
-        Write-Host
-        Write-Host "`n (E) Exit" -ForegroundColor Red
-        Write-Host
+        Write-Host "`n🔄  Chose the Filter mode: " -ForegroundColor Yellow
+        Write-Host "`n   (1) Include Filter" -ForegroundColor Green
+        Write-Host "`n   (2) Exclude Filter" -ForegroundColor Green
+        Write-Host "`n   (3) No Filters" -ForegroundColor Green
         $choiceAssignmentFilter = ''
-        $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
+        $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, please type 1, 2, 3, or E to exit the script, then press enter'
         while ( $choiceAssignmentFilter -notin ('1', '2', '3', 'E')) {
-            $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
+            $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, please type 1, 2, 3, or E to exit the script, then press enter'
         }
         if ($choiceAssignmentFilter -eq 'E') {
             break
@@ -638,11 +612,11 @@ do {
         if ($filtering -eq 'Yes') {
             Write-Host 'Please select the Assignment Filter for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
-            $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
-
-            while ($assignmentFilter.Count -gt 1) {
-                Write-Host 'Please select only one Device Filter...' -ForegroundColor Yellow
-                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Device Filter...'
+            if ($PSVersionTable.PSVersion.Major -eq 7) {
+                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Filter' -OutputMode Single
+            }
+            else {
+                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Filter' -OutputMode Single
             }
         }
     }
@@ -654,8 +628,7 @@ do {
     if ($installIntent -ne 'Remove') {
         Write-Host 'The following Assignment Action has been selected:' -ForegroundColor Cyan
         Write-Host "$Action"
-        Write-Host
-        Write-Host 'The following Assignment Group has been selected:' -ForegroundColor Cyan
+        Write-Host "`nThe following Assignment Group has been selected:" -ForegroundColor Cyan
         if ($assignmentType -eq 'Group') {
             Write-Host "$($assignmentGroup.'Group Name')"
         }
@@ -672,7 +645,6 @@ do {
         Write-Host 'Assignments will be removed.' -ForegroundColor Red
     }
 
-    Write-Host
     Write-Warning 'Please confirm these settings are correct before continuing' -WarningAction Inquire
     Clear-Host
     Start-Sleep -Seconds $rndWait
@@ -682,13 +654,13 @@ do {
             if ($filtering -eq 'Yes') {
                 foreach ($app in $apps) {
                     Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -TargetGroupId $assignmentGroup.'Group ID' -FilterMode $filterMode -FilterID $assignmentFilter.'Filter ID' -Action $Action
-                    Write-Host "Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name') with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
+                    Write-Host "✅ Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name') with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
                 }
             }
             else {
                 foreach ($app in $apps) {
                     Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -TargetGroupId $assignmentGroup.'Group ID' -Action $Action
-                    Write-Host "Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name')" -ForegroundColor Green
+                    Write-Host "✅ Successfully Assigned App: $($app.'App Name') as $installIntent to Group $($assignmentGroup.'Group Name')" -ForegroundColor Green
                 }
             }
         }
@@ -696,13 +668,13 @@ do {
             if ($filtering -eq 'Yes') {
                 foreach ($app in $apps) {
                     Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -All $assignmentType -FilterMode $filterMode -FilterID $assignmentFilter.'Filter ID' -Action $Action
-                    Write-Host "Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
+                    Write-Host "✅ Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType with Filter $($assignmentFilter.'Filter Name')" -ForegroundColor Green
                 }
             }
             else {
                 foreach ($app in $apps) {
                     Add-AppAssignment -Id $app.'App ID' -InstallIntent $installIntent -All $assignmentType -Action $Action
-                    Write-Host "Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType" -ForegroundColor Green
+                    Write-Host "✅ Successfully Assigned App $($app.'App Name') as $installIntent to All $assignmentType" -ForegroundColor Green
                 }
             }
         }
@@ -713,10 +685,10 @@ do {
             foreach ($Assignment in $Assignments) {
                 try {
                     Remove-AppAssignment -Id $app.'App ID' -AssignmentId $Assignment.id
-                    Write-Host "Successfully removed App Assignment from $($app.'App Name')" -ForegroundColor Green
+                    Write-Host "✅ Successfully removed App Assignment from $($app.'App Name')" -ForegroundColor Green
                 }
                 catch {
-                    Write-Host "Unable to remove App Assignment from $($app.'App Name')" -ForegroundColor Red
+                    Write-Host "❌ Unable to remove App Assignment from $($app.'App Name')" -ForegroundColor Red
                 }
 
             }
@@ -725,17 +697,13 @@ do {
     #endregion Script
 
     # Script Relaunch
-    Write-Host
-    Write-Host 'All Assignment Settings Complete' -ForegroundColor Green
-    Write-Host
-    $Title = 'Relaunch the Script'
-    $Question = 'Do you want to relaunch the Script?'
-
-    $Choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
-    $Choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
-    $Choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
-
-    $Decision = $Host.UI.PromptForChoice($Title, $Question, $Choices, 1)
+    Write-Host "`n✨  All Assignment Settings Complete" -ForegroundColor Green
+    $relaunchTitle = '♻  Relaunch the Script'
+    $relaunchQuestion = 'Do you want to relaunch the Script?'
+    $relaunchChoices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+    $relaunchChoices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
+    $relaunchChoices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
+    $relaunchDecision = $Host.UI.PromptForChoice($relaunchTitle, $relaunchQuestion, $relaunchChoices, 1)
 
 }
-until ($Decision -eq 1)
+until ($relaunchDecision -eq 1)
