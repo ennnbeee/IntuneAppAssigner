@@ -153,7 +153,7 @@ function Get-MobileApp() {
         (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -164,10 +164,10 @@ function Get-AssignmentFilter() {
 
     try {
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
-        (Invoke-MgGraphRequest -Uri $uri -Method Get).Value
+        (Invoke-MgGraphRequest -Uri $uri -Method Get -OutputType PSObject).Value
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -212,7 +212,7 @@ function Get-AppAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Get)
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -236,7 +236,7 @@ function Remove-AppAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Delete)
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -288,13 +288,13 @@ function Add-AppAssignment() {
                 foreach ($Assignment in $Assignments) {
 
                     if (($null -ne $TargetGroupId) -and ($TargetGroupId -eq $Assignment.target.groupId)) {
-                        Write-Host 'The App is already assigned to the Group' -ForegroundColor Yellow
+                        Write-Host '❗The App is already assigned to the Group' -ForegroundColor Yellow
                     }
                     elseif (($All -eq 'Devices') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allDevicesAssignmentTarget')) {
-                        Write-Host 'The App is already assigned to the All Devices Group' -ForegroundColor Yellow
+                        Write-Host '❗The App is already assigned to the All Devices Group' -ForegroundColor Yellow
                     }
                     elseif (($All -eq 'Users') -and ($Assignment.target.'@odata.type' -eq '#microsoft.graph.allLicensedUsersAssignmentTarget')) {
-                        Write-Host 'The App is already assigned to the All Users Group' -ForegroundColor Yellow
+                        Write-Host '❗The App is already assigned to the All Users Group' -ForegroundColor Yellow
                     }
                     else {
                         $TargetGroup = New-Object -TypeName psobject
@@ -361,7 +361,7 @@ function Add-AppAssignment() {
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        Write-Error $Error[0].ErrorDetails.Message
+        Write-Error $_.Exception.Message
         break
     }
 }
@@ -455,15 +455,16 @@ Write-Host 'All required scope permissions are present.' -ForegroundColor Green
 
 do {
     #region Script
+    Start-Sleep -Seconds 5
     Clear-Host
     Write-Host "`n📱 Select which mobile app type:" -ForegroundColor White
     Write-Host "`n  (1) Android App Assignment" -ForegroundColor Green
     Write-Host "`n  (2) iOS/iPadOS App Assignment" -ForegroundColor Cyan
     Write-Host "`n  (E) Exit" -ForegroundColor Red
     $choiceAppType = ''
-    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter.'
+    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter'
     while ( $choiceAppType -notin ('1', '2', 'E')) {
-        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter.'
+        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter'
     }
     if ($choiceAppType -eq 'E') {
         break
@@ -495,9 +496,9 @@ do {
     Write-Host "`n   (E) Exit" -ForegroundColor Red
 
     $choiceAssignmentType = ''
-    $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
+    $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter'
     while ( ($choiceAssignmentType -notin ('1', '2', 'E'))) {
-        $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
+        $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter'
     }
     if ($choiceAssignmentType -eq 'E') {
         break
@@ -518,9 +519,9 @@ do {
     Write-Host "`n   (E) Exit" -ForegroundColor Red
 
     $choiceInstallIntent = ''
-    $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
+    $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter'
     while ( !($choiceInstallIntent -eq '1' -or $choiceInstallIntent -eq '2' -or $choiceInstallIntent -eq '3' -or $choiceInstallIntent -eq 'E')) {
-        $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
+        $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter'
     }
     if ($choiceInstallIntent -eq 'E') {
         break
@@ -546,9 +547,9 @@ do {
         Write-Host "`n   (3) Assign Apps to a Group" -ForegroundColor Green
         Write-Host "`n   (E) Exit" -ForegroundColor Red
         $choiceAssignmentTarget = ''
-        $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
+        $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter'
         while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
-            $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
+            $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter'
         }
         if ($choiceAssignmentTarget -eq 'E') {
             break
@@ -613,10 +614,10 @@ do {
             Write-Host 'Please select the Assignment Filter for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
             if ($PSVersionTable.PSVersion.Major -eq 7) {
-                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Filter' -OutputMode Single
+                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") -and ($_.assignmentFilterManagementType -eq 'devices')} | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Filter' -OutputMode Single
             }
             else {
-                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Filter' -OutputMode Single
+                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") -and ($_.assignmentFilterManagementType -eq 'devices') } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Filter' -OutputMode Single
             }
         }
     }
@@ -697,7 +698,7 @@ do {
     #endregion Script
 
     # Script Relaunch
-    Write-Host "`n✨  All Assignment Settings Complete" -ForegroundColor Green
+    Write-Host "`n✨ All Assignment Settings Complete" -ForegroundColor Green
     $relaunchTitle = '♻  Relaunch the Script'
     $relaunchQuestion = 'Do you want to relaunch the Script?'
     $relaunchChoices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
