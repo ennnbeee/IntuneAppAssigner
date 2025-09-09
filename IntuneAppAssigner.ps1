@@ -68,7 +68,7 @@ param(
 
     [Parameter(Mandatory = $true, ParameterSetName = 'appAuth', HelpMessage = 'Provide the App secret to allow for authentication to graph')]
     [ValidateNotNullOrEmpty()]
-    [String]$appsecret
+    [String]$appSecret
 
 )
 
@@ -103,7 +103,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
     (
         [Parameter(Mandatory = $false)] [string]$tenantId,
         [Parameter(Mandatory = $false)] [string]$appId,
-        [Parameter(Mandatory = $false)] [string]$appsecret,
+        [Parameter(Mandatory = $false)] [string]$appSecret,
         [Parameter(Mandatory = $false)] [string[]]$scopes
     )
 
@@ -115,7 +115,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
             $body = @{
                 grant_type    = 'client_credentials';
                 client_id     = $appId;
-                client_secret = $appsecret;
+                client_secret = $appSecret;
                 scope         = 'https://graph.microsoft.com/.default';
             }
 
@@ -417,13 +417,13 @@ try {
         Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
     }
     else {
-        if ((!$appId -and !$appsecret) -or ($appId -and !$appsecret) -or (!$appId -and $appsecret)) {
+        if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
             Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
             Connect-ToGraph -tenantId $tenantId -Scopes $scopes -ErrorAction Stop
         }
         else {
             Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
-            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appsecret -ErrorAction Stop
+            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -ErrorAction Stop
         }
     }
     $context = Get-MgContext
@@ -455,22 +455,14 @@ do {
 
     #region Script
     Clear-Host
-    Write-Host '************************************************************************************'
-    Write-Host '****    Please select the Mobile App type to Assign                             ****' -ForegroundColor Cyan
-    Write-Host '************************************************************************************'
-    Write-Host
-    Write-Host ' Please Choose one of the options below: ' -ForegroundColor Yellow
-    Write-Host
-    Write-Host ' (1) Android App Assignment' -ForegroundColor Green
-    Write-Host
-    Write-Host ' (2) iOS App Assignment' -ForegroundColor Green
-    Write-Host
-    Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
-    Write-Host
+    Write-Host "`n📱 Select which mobile app type:" -ForegroundColor White
+    Write-Host "`n(1) Android App Assignment" -ForegroundColor Green
+    Write-Host "`n(2) iOS/iPadOS App Assignment" -ForegroundColor Cyan
+    Write-Host "`n(E) Exit" -ForegroundColor Red
     $choiceAppType = ''
-    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
+    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter.'
     while ( $choiceAppType -notin ('1', '2', 'E')) {
-        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter '
+        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, or E to exit the script, then press enter.'
     }
     if ($choiceAppType -eq 'E') {
         break
@@ -496,18 +488,11 @@ do {
     }
     Clear-Host
     Start-Sleep -Seconds $rndWait
-    Write-Host '************************************************************************************'
-    Write-Host '****    Select the assignment type                                              ****' -ForegroundColor Cyan
-    Write-Host '************************************************************************************'
-    Write-Host
-    Write-Host ' Please Choose one of the options below:' -ForegroundColor Yellow
-    Write-Host
-    Write-Host ' (1) Replace Existing Assignments' -ForegroundColor Green
-    Write-Host
-    Write-Host ' (2) Add to Existing Assignments' -ForegroundColor Green
-    Write-Host
-    Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
-    Write-Host
+    Write-Host "`nSelect the assignment action:" -ForegroundColor White
+    Write-Host "`n(1) Replace existing assignments" -ForegroundColor Yellow
+    Write-Host "`n(2) Add to existing assignments" -ForegroundColor Green
+    Write-Host "`n (E) Exit" -ForegroundColor Red
+
     $choiceAssignmentType = ''
     $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, or E to exit the script, then press enter '
     while ( ($choiceAssignmentType -notin ('1', '2', 'E'))) {
@@ -537,7 +522,7 @@ do {
     Write-Host
     Write-Host ' (3) Remove All Assignments' -ForegroundColor Green
     Write-Host
-    Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
+    Write-Host "`n (E) Exit" -ForegroundColor Red
     Write-Host
     $choiceInstallIntent = ''
     $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter '
@@ -574,7 +559,7 @@ do {
         Write-Host
         Write-Host ' (3) Assign Apps to a Group' -ForegroundColor Green
         Write-Host
-        Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
+        Write-Host "`n (E) Exit" -ForegroundColor Red
         Write-Host
         $choiceAssignmentTarget = ''
         $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter '
@@ -628,7 +613,7 @@ do {
         Write-Host
         Write-Host ' (3) No Filters' -ForegroundColor Green
         Write-Host
-        Write-Host ' (E) EXIT SCRIPT ' -ForegroundColor Red
+        Write-Host "`n (E) Exit" -ForegroundColor Red
         Write-Host
         $choiceAssignmentFilter = ''
         $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Device Filter, please type 1, 2, 3, or E to exit the script, then press enter'
