@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.1.1
+.VERSION 0.1.2
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.1.2 - Bug Fixes
 v0.1.1 - Allow for creation of App Config policies.
 v0.1.0 - Initial release.
 
@@ -466,6 +467,13 @@ Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-11' -ForegroundCo
 Write-Host "`nIf you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 #endregion intro
 
+#region preflight
+if ($PSVersionTable.PSVersion.Major -eq 5) {
+    Write-Host 'WARNING: PowerShell 5 is not supported, please use PowerShell 7 or later.' -ForegroundColor Red
+    exit
+}
+#endregion preflight
+
 #region variables
 $requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All')
 [String[]]$scopes = $requiredScopes -join ', '
@@ -473,12 +481,7 @@ $rndWait = Get-Random -Minimum 1 -Maximum 2
 #endregion variables
 
 #region module check
-if ($PSVersionTable.PSVersion.Major -eq 7) {
-    $modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
-}
-else {
-    $modules = @('Microsoft.Graph.Authentication')
-}
+$modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
 foreach ($module in $modules) {
     Write-Host "Checking for $module PowerShell module..." -ForegroundColor Cyan
     if (!(Get-Module -Name $module -ListAvailable)) {
@@ -588,13 +591,7 @@ do {
     Start-Sleep -Seconds $rndWait
     $apps = @()
     while ($apps.count -eq 0) {
-        if ($PSVersionTable.PSVersion.Major -eq 7) {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' }, @{Label = 'App Package'; Expression = $appPackage } | Out-ConsoleGridView -Title 'Select Apps to Assign' -OutputMode Multiple)
-
-        }
-        else {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' }, @{Label = 'App Package'; Expression = $appPackage } | Out-GridView -PassThru -Title 'Select Apps to Assign' -OutputMode Multiple)
-        }
+        $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'App Type'; Expression = '@odata.type' }, @{Label = 'App Name'; Expression = 'displayName' }, @{Label = 'App Publisher'; Expression = 'publisher' }, @{Label = 'App ID'; Expression = 'id' }, @{Label = 'App Package'; Expression = $appPackage } | Out-ConsoleGridView -Title 'Select Apps to Assign' -OutputMode Multiple)
     }
     #endregion App Type
 
@@ -682,7 +679,7 @@ do {
 
     $choiceInstallIntent = ''
     $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter'
-    while ( !($choiceInstallIntent -eq '1' -or $choiceInstallIntent -eq '2' -or $choiceInstallIntent -eq '3' -or $choiceInstallIntent -eq 'E')) {
+    while ( $choiceInstallIntent -notin ('1', '2', '3', 'E')) {
         $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3 or E to exit the script, then press enter'
     }
     if ($choiceInstallIntent -eq 'E') {
@@ -733,20 +730,15 @@ do {
             if ($choiceInstallIntent -eq 2) {
                 Write-Host "Assigning Apps as 'Available' to Device groups will not work, please ensure you select a group of Users" -ForegroundColor yellow
             }
-            $groupName = Read-Host 'Please enter a search term for the Assignment Group'
-            while ($groupName.Length -eq 0) {
-                $groupName = Read-Host 'Please enter a search term for the Assignment Group'
+            $groupName = Read-Host 'Please enter a search term for the Assignment Group of at least three characters'
+            while ($groupName.Length -lt 3) {
+                $groupName = Read-Host 'Please enter a search term for the Assignment Group of at least three characters'
             }
             Start-Sleep -Seconds $rndWait
             Write-Host 'Please select the Group for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
             while ($null -eq $assignmentGroup) {
-                if ($PSVersionTable.PSVersion.Major -eq 7) {
-                    $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
-                }
-                else {
-                    $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Group' -OutputMode Single
-                }
+                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'Group Name'; Expression = 'displayName' }, @{Label = 'Group ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
             }
         }
 
@@ -779,11 +771,8 @@ do {
         if ($filtering -eq 'Yes') {
             Write-Host 'Please select the Assignment Filter for the assignment...' -ForegroundColor Cyan
             Start-Sleep -Seconds $rndWait
-            if ($PSVersionTable.PSVersion.Major -eq 7) {
+            while ($null -eq $assignmentFilter) {
                 $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") -and ($_.assignmentFilterManagementType -eq 'devices') } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-ConsoleGridView -Title 'Select Assignment Filter' -OutputMode Single
-            }
-            else {
-                $assignmentFilter = Get-AssignmentFilter | Where-Object { ($_.platform) -like ("*$appType*") -and ($_.assignmentFilterManagementType -eq 'devices') } | Select-Object -Property @{Label = 'Filter Name'; Expression = 'displayName' }, @{Label = 'Filter Rule'; Expression = 'rule' }, @{Label = 'Filter ID'; Expression = 'id' } | Out-GridView -PassThru -Title 'Select Assignment Filter' -OutputMode Single
             }
         }
     }

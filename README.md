@@ -16,6 +16,7 @@ Once authenticated navigate the options to bulk assign your Android or iOS/iPadO
 
 - Select the mobile app type
 - Select the mobile apps you want to update the assignments of
+- Select whether you want to create App Config profiles for COPE, BYOD, or both
 - Select whether you want to replace existing or add to existing assignments
 - Select the installation intent of the assignment from Required or Available
 - Select the group for assignment from 'All users', 'All devices', or an Entra ID group
@@ -26,7 +27,6 @@ Once authenticated navigate the options to bulk assign your Android or iOS/iPadO
 
 > [!IMPORTANT]
 >
-> - Supports PowerShell 5 on Windows
 > - Supports PowerShell 7 on Windows and macOS
 > - `Microsoft.Graph.Authentication` module should be installed, the script will detect and install if required.
 > - `Microsoft.PowerShell.ConsoleGuiTools` module should be installed when using PowerShell 7, the script will detect and install if required.
@@ -34,7 +34,11 @@ Once authenticated navigate the options to bulk assign your Android or iOS/iPadO
 
 ## 🔄 Updates
 
-- **v0.1.0**
+- **v0.1.2**
+  - Bug fixes
+- v0.1.1
+  - Updated to add App Config profiles for IntuneMAMUPN apps
+- v0.1.0
   - Initial release
 
 ## ⏯ Usage
@@ -72,7 +76,7 @@ Then run the script with the corresponding Entra ID Tenant ID, AppId and AppSecr
 
 ## 🎬 Demos
 
-Coming Soon.
+<video controls src="https://github.com/ennnbeee/IntuneAppAssigner/raw/refs/heads/main/img/iaa-demo-ios.mp4.mp4" title="Demo"></video>
 
 ## 🚑 Support
 
