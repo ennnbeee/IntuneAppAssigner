@@ -12,16 +12,16 @@ IntuneAppAssigner is currently in Public Preview, meaning that although the it i
 
 ## 🌟 Features
 
-Once authenticated navigate the options to bulk assign your Android or iOS/iPadOS apps, with the following options:
+Once authenticated navigate the options to bulk assign your **Android**, **iOS/iPadOS**, or **macOS** apps, with the following options:
 
-- Select the mobile app type
-- Select the mobile apps you want to update the assignments of
-- Select whether you want to create App Config profiles for COPE, BYOD, or both
-- Select whether you want to replace existing or add to existing assignments
-- Select the installation intent of the assignment from Required or Available
-- Select the group for assignment from 'All users', 'All devices', or an Entra ID group
-- Select whether you want use Assignment filters and the mode from 'Include' or 'Exclude'
-- Select the Assignment Filter you wish to use as part of the assignment
+- 📱 Select the app type
+- 🎁 Select the apps you want to update the assignments of
+- 🪧 Select whether you want to create Android/iOS App Config profiles for COPE, BYOD, or both
+- 🔀 Select whether you want to replace existing or add to existing assignments
+- 💽 Select the installation intent of the assignment from Required or Available
+- 🫂 Select the group for assignment from 'All users', 'All devices', or an Entra ID group
+- 🔄 Select whether you want use Assignment filters and the mode from 'Include' or 'Exclude'
+- 🗒 Select the Assignment Filter you wish to use as part of the assignment
 
 ## 🗒 Prerequisites
 
@@ -34,7 +34,9 @@ Once authenticated navigate the options to bulk assign your Android or iOS/iPadO
 
 ## 🔄 Updates
 
-- **v0.1.3**
+- **v0.2.0**
+  - Supports macOS apps
+- v0.1.3
   - Logic and interface improvements
 - v0.1.2
   - Bug fixes
@@ -65,6 +67,8 @@ OR
 
 Create an Entra ID App Registration with the following Graph API Application permissions:
 
+- `DeviceManagementApps.ReadWrite.All`
+- `DeviceManagementConfiguration.Read.All`
 - `DeviceManagementApps.ReadWrite.All`
 - `Group.Read.All`
 
