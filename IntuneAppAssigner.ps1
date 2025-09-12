@@ -445,8 +445,6 @@ function New-ManagedDeviceAppConfig() {
     else {
         Write-Output 'Managed Device App Config Profile was not created'
     }
-
-
 }
 function Get-ManagedDeviceAppConfig() {
     [cmdletbinding()]
