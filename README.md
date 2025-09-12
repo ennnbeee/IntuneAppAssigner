@@ -34,7 +34,9 @@ Once authenticated navigate the options to bulk assign your Android or iOS/iPadO
 
 ## 🔄 Updates
 
-- **v0.1.2**
+- **v0.1.3**
+  - Logic and interface improvements
+- v0.1.2
   - Bug fixes
 - v0.1.1
   - Updated to add App Config profiles for IntuneMAMUPN apps
@@ -76,7 +78,7 @@ Then run the script with the corresponding Entra ID Tenant ID, AppId and AppSecr
 
 ## 🎬 Demos
 
-<video controls src="https://github.com/ennnbeee/IntuneAppAssigner/raw/refs/heads/main/img/iaa-demo-ios.mp4.mp4" title="Demo"></video>
+Coming soon.
 
 ## 🚑 Support
 

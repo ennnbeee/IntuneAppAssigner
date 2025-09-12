@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.1.2
+.VERSION 0.1.3
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.1.3 - Improvements to App Config creation logic.
 v0.1.2 - Bug Fixes
 v0.1.1 - Allow for creation of App Config policies.
 v0.1.0 - Initial release.
@@ -462,8 +463,8 @@ Write-Host '
 
 Write-Host 'IntuneAppAssigner - Update Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.1.1 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-11' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.1.3 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-12' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 #endregion intro
 
@@ -534,7 +535,7 @@ Write-Host 'All required scope permissions are present.' -ForegroundColor Green
 
 do {
     #region App Type
-    Start-Sleep -Seconds 5
+    Start-Sleep -Seconds $rndWait
     Clear-Host
     Write-Host "`n📱 Select which mobile app type:" -ForegroundColor White
     Write-Host "`n  (1) Android App Assignment" -ForegroundColor Green
@@ -551,40 +552,12 @@ do {
     if ($choiceAppType -eq '1') {
         $appType = 'android'
         $appPackage = 'packageId'
-        $appConfigCOPrefix = 'POC_AND_AE_D_CO_'
-        $appConfigBYODPrefix = 'POC_AND_AE_D_BYOD_'
-        $appsIntuneMAM = @(
-            'com.microsoft.office.officehubrow'
-            'com.microsoft.office.word'
-            'com.microsoft.office.excel'
-            'com.microsoft.office.powerpoint'
-            'com.microsoft.office.onenote'
-            'com.microsoft.emmx'
-            'com.microsoft.skydrive'
-            'com.microsoft.office.outlook'
-            'com.microsoft.teams'
-            'com.microsoft.copilot'
-            'com.microsoft.office.onenote'
-        )
+        $appConfigPrefix = 'POC_AND_AE_D_'
     }
     if ($choiceAppType -eq '2') {
         $appType = 'ios'
         $appPackage = 'bundleId'
-        $appConfigCOPrefix = 'POC_IOS_D_CO_'
-        $appConfigBYODPrefix = 'POC_IOS_D_BYOD_'
-        $appsIntuneMAM = @(
-            'com.microsoft.officemobile'
-            'com.microsoft.Office.Word'
-            'com.microsoft.Office.Excel'
-            'com.microsoft.Office.Powerpoint'
-            'com.microsoft.office.onenote'
-            'com.microsoft.msedge'
-            'com.microsoft.skydrive'
-            'com.microsoft.Office.Outlook'
-            'com.microsoft.skype.teams'
-            'com.microsoft.copilot'
-            'com.microsoft.onenote'
-        )
+        $appConfigPrefix = 'POC_IOS_D_'
     }
 
     Write-Host "Please select the $appType Apps you wish to modify assignments" -ForegroundColor Cyan
@@ -598,9 +571,9 @@ do {
     #region App Config
     Clear-Host
     Start-Sleep -Seconds $rndWait
-    Write-Host "`n🪧  Select if App Config profiles should be created:" -ForegroundColor White
+    Write-Host "`n🪧  Select if Work Account App Config profiles should be created:" -ForegroundColor White
     Write-Host "`n   (1) Create App Config profiles" -ForegroundColor Green
-    Write-Host "`n   (2) Do not create App Config profiles" -ForegroundColor Yellow
+    Write-Host "`n   (2) Do not create App Config profiles" -ForegroundColor Cyan
     Write-Host "`n   (E) Exit`n" -ForegroundColor Red
 
     $choiceAppConfig = ''
@@ -673,7 +646,7 @@ do {
     Start-Sleep -Seconds $rndWait
     Write-Host "`n💽  Choose the installation intent:" -ForegroundColor White
     Write-Host "`n   (1) Assign Apps as 'Required'" -ForegroundColor Green
-    Write-Host "`n   (2) Assign Apps as 'Available'" -ForegroundColor Green
+    Write-Host "`n   (2) Assign Apps as 'Available'" -ForegroundColor Cyan
     Write-Host "`n   (3) Remove All Assignments" -ForegroundColor Yellow
     Write-Host "`n   (E) Exit`n" -ForegroundColor Red
 
@@ -747,7 +720,7 @@ do {
         Write-Host "`n🔄  Chose the Filter mode: " -ForegroundColor Yellow
         Write-Host "`n   (1) Include Filter" -ForegroundColor Green
         Write-Host "`n   (2) Exclude Filter" -ForegroundColor Green
-        Write-Host "`n   (3) No Filters`n" -ForegroundColor Green
+        Write-Host "`n   (3) No Filters`n" -ForegroundColor Cyan
         $choiceAssignmentFilter = ''
         $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, please type 1, 2, 3, or E to exit the script, then press enter'
         while ( $choiceAssignmentFilter -notin ('1', '2', '3', 'E')) {
@@ -860,13 +833,25 @@ do {
     #region App Config
     if ($appConfig -eq 'Yes') {
         foreach ($app in $apps) {
-            if ($($app.'App Package') -in $appsIntuneMAM) {
 
-                switch ($appType) {
-                    'ios' {
-                        $appConfigCODisplayName = "$appConfigCOPrefix$($($app.'App Name').Replace(' ',''))"
-                        $appConfigBYODDisplayName = "$appConfigBYODPrefix$($($app.'App Name').Replace(' ',''))"
-                        $appConfigCOJSON = @"
+            switch ($appType) {
+                'ios' {
+                    $appsIntuneMAM = @(
+                        'com.microsoft.officemobile'
+                        'com.microsoft.Office.Word'
+                        'com.microsoft.Office.Excel'
+                        'com.microsoft.Office.Powerpoint'
+                        'com.microsoft.office.onenote'
+                        'com.microsoft.msedge'
+                        'com.microsoft.skydrive'
+                        'com.microsoft.Office.Outlook'
+                        'com.microsoft.skype.teams'
+                        'com.microsoft.copilot'
+                        'com.microsoft.onenote'
+                    )
+                    $appConfigCODisplayName = "$appConfigPrefix`CO_$($($app.'App Name').Replace(' ',''))"
+                    $appConfigBYODDisplayName = "$appConfigPrefix`BYOD_$($($app.'App Name').Replace(' ',''))"
+                    $appConfigCOJSON = @"
 {
     "@odata.type": "#microsoft.graph.iosMobileAppConfiguration",
     "displayName": "$appConfigCODisplayName",
@@ -883,7 +868,7 @@ do {
     ]
 }
 "@
-                        $appConfigBYODJSON = @"
+                    $appConfigBYODJSON = @"
 {
     "@odata.type": "#microsoft.graph.iosMobileAppConfiguration",
     "displayName": "$appConfigBYODDisplayName",
@@ -900,11 +885,23 @@ do {
     ]
 }
 "@
-                    }
-                    'android' {
-                        $appConfigCODisplayName = "$appConfigCOPrefix$($($app.'App Name').Replace(' ',''))"
-                        $appConfigBYODDisplayName = "$appConfigBYODPrefix$($($app.'App Name').Replace(' ',''))"
-                        $appConfigSettingsJSON = @"
+                }
+                'android' {
+                    $appsIntuneMAM = @(
+                        'com.microsoft.office.officehubrow'
+                        'com.microsoft.office.word'
+                        'com.microsoft.office.excel'
+                        'com.microsoft.office.powerpoint'
+                        'com.microsoft.office.onenote'
+                        'com.microsoft.emmx'
+                        'com.microsoft.skydrive'
+                        'com.microsoft.office.outlook'
+                        'com.microsoft.teams'
+                        'com.microsoft.copilot'
+                    )
+                    $appConfigCODisplayName = "$appConfigPrefix`_CO$($($app.'App Name').Replace(' ',''))"
+                    $appConfigBYODDisplayName = "$appConfigPrefix`_BYOD$($($app.'App Name').Replace(' ',''))"
+                    $appConfigSettingsJSON = @"
 {
     "kind": "androidenterprise#managedConfiguration",
     "productId": "app:$($app.'App Package')",
@@ -916,9 +913,9 @@ do {
     ]
 }
 "@
-                        [string]$appConfigSettingsString = $appConfigSettingsJSON | ConvertFrom-Json | ConvertTo-Json -Compress
-                        $appConfigSettingsEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("$appConfigSettingsString"))
-                        $appConfigCOJSON = @"
+                    [string]$appConfigSettingsString = $appConfigSettingsJSON | ConvertFrom-Json | ConvertTo-Json -Compress
+                    $appConfigSettingsEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("$appConfigSettingsString"))
+                    $appConfigCOJSON = @"
 {
     "@odata.type": "#microsoft.graph.androidManagedStoreAppConfiguration",
     "displayName": "$appConfigCODisplayName",
@@ -933,7 +930,7 @@ do {
     "connectedAppsEnabled": false,
 }
 "@
-                        $appConfigBYODJSON = @"
+                    $appConfigBYODJSON = @"
 {
     "@odata.type": "#microsoft.graph.androidManagedStoreAppConfiguration",
     "displayName": "$appConfigBYODDisplayName",
@@ -948,8 +945,10 @@ do {
     "connectedAppsEnabled": false,
 }
 "@
-                    }
                 }
+            }
+
+            if ($($app.'App Package') -in $appsIntuneMAM) {
 
                 if ($appConfigOwnership -eq 'Both' -or $appConfigOwnership -eq 'COPE') {
                     $appConfigCOExists = Get-ManagedDeviceAppConfig | Where-Object { $_.displayName -eq $appConfigCODisplayName }
