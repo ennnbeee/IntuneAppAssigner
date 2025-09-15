@@ -1141,8 +1141,8 @@ do {
                         'com.microsoft.teams'
                         'com.microsoft.copilot'
                     )
-                    $appConfigCODisplayName = "$appConfigPrefix`_CO$($($app.'App Name').Replace(' ',''))"
-                    $appConfigBYODDisplayName = "$appConfigPrefix`_BYOD$($($app.'App Name').Replace(' ',''))"
+                    $appConfigCODisplayName = "$appConfigPrefix`CO_$($($app.'App Name').Replace(' ',''))"
+                    $appConfigBYODDisplayName = "$appConfigPrefix`BYOD_$($($app.'App Name').Replace(' ',''))"
                     $appConfigSettingsJSON = @"
 {
     "kind": "androidenterprise#managedConfiguration",
