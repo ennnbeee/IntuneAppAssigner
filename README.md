@@ -12,16 +12,18 @@ IntuneAppAssigner is currently in Public Preview, meaning that although the it i
 
 ## 🌟 Features
 
-Once authenticated navigate the options to bulk assign your **Android**, **iOS/iPadOS**, or **macOS** apps, with the following options:
+Once authenticated navigate the options to bulk assign your **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps, with the following options:
 
-- 📱 Select the app type
-- 🎁 Select the apps you want to update the assignments of
-- 🪧 Select whether you want to create Android/iOS App Config profiles for COPE, BYOD, or both
-- 🔀 Select whether you want to replace existing or add to existing assignments
+- 📱 Select the app type from Android, iOS/iPadOS, macOS, or Windows apps.
+- 🎁 Select the apps you want to update the assignments of.
+- 🪧 If Android or iOS/iPadOS apps select whether you want to create App Config profiles for COPE, BYOD, or both.
+- 🔀 Select whether you want to replace the existing assignments or add to existing assignments with assignment logic built in.
 - 💽 Select the installation intent of the assignment from Required or Available
-- 🫂 Select the group for assignment from 'All users', 'All devices', or an Entra ID group
-- 🔄 Select whether you want use Assignment filters and the mode from 'Include' or 'Exclude'
+- 🫂 Select the group for assignment from 'All users', 'All devices', or an Entra ID group with group usage logic built in.
+- 🔄 Select whether you want use Assignment filters and the mode from 'Include' or 'Exclude', with prompts where apps do not support filters.
 - 🗒 Select the Assignment Filter you wish to use as part of the assignment
+
+> Note: If you want to change the App Config profile name, update the `$appConfigPrefix` variables in the script.
 
 ## 🗒 Prerequisites
 
@@ -34,7 +36,9 @@ Once authenticated navigate the options to bulk assign your **Android**, **iOS/i
 
 ## 🔄 Updates
 
-- **v0.2.1**
+- **v0.3.0**
+  - Supports Windows app assignment
+- v0.2.1
   - Bug fixes
 - v0.2.0
   - Supports macOS apps
@@ -63,15 +67,12 @@ Run the script with the your Entra ID Tenant ID passed to the `tenantID` paramet
 .\IntuneAppAssigner.ps1 -tenantID '437e8ffb-3030-469a-99da-e5b527908099'
 ```
 
-![AutoPilotGroupTagger Authentication using tenantID](img/agt-demo-auth-tenant.gif)
-
 OR
 
 Create an Entra ID App Registration with the following Graph API Application permissions:
 
 - `DeviceManagementApps.ReadWrite.All`
 - `DeviceManagementConfiguration.Read.All`
-- `DeviceManagementApps.ReadWrite.All`
 - `Group.Read.All`
 
 Create an App Secret for the App Registration to be used when running the script.
@@ -84,7 +85,21 @@ Then run the script with the corresponding Entra ID Tenant ID, AppId and AppSecr
 
 ## 🎬 Demos
 
-Coming soon.
+### Android Apps
+
+![IntuneAppAssigner](img/iaa-demo-android.gif)
+
+### iOS/iPadOS Apps
+
+![IntuneAppAssigner](img/iaa-demo-ios.gif)
+
+### macOS Apps
+
+![IntuneAppAssigner](img/iaa-demo-macos.gif)
+
+### Windows Apps
+
+![IntuneAppAssigner](img/iaa-demo-windows.gif)
 
 ## 🚑 Support
 
