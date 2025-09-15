@@ -34,7 +34,9 @@ Once authenticated navigate the options to bulk assign your **Android**, **iOS/i
 
 ## 🔄 Updates
 
-- **v0.2.0**
+- **v0.2.1**
+  - Bug fixes
+- v0.2.0
   - Supports macOS apps
 - v0.1.3
   - Logic and interface improvements
