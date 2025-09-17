@@ -731,7 +731,7 @@ Write-Host "`nIf you have any feedback, please open an issue at https://github.c
 
 #region preflight
 if ($PSVersionTable.PSVersion.Major -eq 5) {
-    Write-Host 'WARNING: PowerShell 5 is not supported, please use PowerShell 7 or later.' -ForegroundColor Red
+    Write-Host 'WARNING: PowerShell 5 is not supported, please use PowerShell 7 or later.' -ForegroundColor Yellow
     exit
 }
 #endregion preflight
@@ -788,7 +788,7 @@ $currentScopes = $context.Scopes
 # Validate required permissions
 $missingScopes = $requiredScopes | Where-Object { $_ -notin $currentScopes }
 if ($missingScopes.Count -gt 0) {
-    Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Red
+    Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Yellow
     $missingScopes | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
     Write-Host "`nPlease ensure these permissions are granted to the app registration for full functionality." -ForegroundColor Yellow
     exit
@@ -872,7 +872,7 @@ do {
         Write-Host "`n   (1) Replace all existing assignments" -ForegroundColor Yellow
         Write-Host "`n   (2) Add to the existing assignments" -ForegroundColor Green
         Write-Host "`n   (3) Review existing assignments" -ForegroundColor Cyan
-        Write-Host "`n   (E) Exit`n" -ForegroundColor Red
+        Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
         $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, 3, or E to exit the script, then press enter'
         while ( ($choiceAssignmentType -notin ('1', '2', '3', 'E'))) {
