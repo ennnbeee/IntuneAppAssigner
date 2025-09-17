@@ -12,16 +12,16 @@ IntuneAppAssigner is currently in Public Preview, meaning that although the it i
 
 ## 🌟 Features
 
-Once authenticated navigate the options to bulk assign your **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps, with the following options:
+Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS, macOS, or Windows apps, with the following options:
 
-- 📱 Select the app type from Android, iOS/iPadOS, macOS, or Windows apps.
-- 🎁 Select the apps you want to update the assignments of.
-- 🪧 If Android or iOS/iPadOS apps select whether you want to create App Config profiles for COPE, BYOD, or both.
-- 🔀 Select whether you want to replace the existing assignments or add to existing assignments with assignment logic built in.
-- 💽 Select the installation intent of the assignment from Required or Available
-- 🫂 Select the group for assignment from 'All users', 'All devices', or an Entra ID group with group usage logic built in.
-- 🔄 Select whether you want use Assignment filters and the mode from 'Include' or 'Exclude', with prompts where apps do not support filters.
-- 🗒 Select the Assignment Filter you wish to use as part of the assignment
+- 📱 Select the app type from **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps.
+- 🎁 Select the apps you want to update or review the assignments of.
+- 🔀 Select whether you want to **replace** the existing assignments, **add to** existing assignments, or **review** the existing assignments.
+- 💽 Select the installation intent of the assignment from **Required**, **Available**, or **Uninstall**.
+- 🫂 Select the group for assignment from '**All users**', '**All devices**', or an **Entra ID group** with group usage logic built in.
+- 🔄 Select whether you want use **Assignment filters** and the mode from '**Include**' or '**Exclude**', with prompts where apps do not support filters.
+- 🗒 Select the **Assignment Filter** you wish to use as part of the assignment
+- 🪧 If Android or iOS/iPadOS apps select whether you want to create managed device **App Config profiles** for COPE, BYOD, or both.
 
 > Note: If you want to change the App Config profile name, update the `$appConfigPrefix` variables in the script.
 
@@ -36,7 +36,10 @@ Once authenticated navigate the options to bulk assign your **Android**, **iOS/i
 
 ## 🔄 Updates
 
-- **v0.3.0**
+- **v0.4.0**
+  - Supports the Uninstall assignment intent
+  - Allows for review of existing assignments
+- v0.3.0
   - Supports Windows app assignment
 - v0.2.1
   - Bug fixes
