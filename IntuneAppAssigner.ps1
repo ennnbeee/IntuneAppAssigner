@@ -13,7 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
-v0.4.0 - Updated to include assignment review mode
+v0.4.0 - Updated to include assignment review mode and uninstall intent
 v0.3.0 - Support for Windows apps
 v0.2.1 - Bug Fixes
 v0.2.0 - Supports macOS apps
@@ -238,6 +238,9 @@ function Get-AssignmentFilter() {
     .DESCRIPTION
     This function allows for getting assignment filters from Intune.
 
+    .PARAMETER Id
+    Specifies the Id of the assignment filter to retrieve. If not provided, all assignment filters will be returned.
+
     #>
 
     param
@@ -278,6 +281,10 @@ function Get-MDMGroup() {
 
     .PARAMETER groupName
     Specifies a search term for the group name. If not provided, all groups will be returned.
+
+    .PARAMETER Id
+    Specifies the Id of the group to retrieve. If not provided, all groups apps will be returned.
+
 
     #>
 
@@ -432,7 +439,7 @@ function Add-AppAssignment() {
     Specifies the Id of the group to assign the app to.
 
     .PARAMETER installIntent
-    Specifies the install intent for the app assignment. Valid values are 'Available' or 'Required'.
+    Specifies the install intent for the app assignment. Valid values are 'Available', 'Required', or 'Uninstall'.
 
     .PARAMETER filterID
     Specifies the Id of the assignment filter to apply to the assignment.
@@ -1067,7 +1074,7 @@ do {
     #endregion Group Assignment
 
     #region App Config
-    if ($appType -eq 'ios' -or $appType -eq 'android') {
+    if (($appType -eq 'ios' -or $appType -eq 'android') -and ($installIntent -ne 'Remove')) {
         Clear-Host
         Start-Sleep -Seconds $rndWait
         Write-Host "`n🪧  Select if Work Account App Config profiles should be created:" -ForegroundColor White
