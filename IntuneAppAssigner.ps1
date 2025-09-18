@@ -5,7 +5,7 @@
 .AUTHOR Nick Benton
 .COMPANYNAME
 .COPYRIGHT GPL
-.TAGS Graph Intune Windows Autopilot GroupTags
+.TAGS Graph Intune Windows Android iOS macOS Apps
 .LICENSEURI https://github.com/ennnbeee/IntuneAppAssigner/blob/main/LICENSE
 .PROJECTURI https://github.com/ennnbeee/IntuneAppAssigner
 .ICONURI https://raw.githubusercontent.com/ennnbeee/IntuneAppAssigner/refs/heads/main/img/iaa-icon.png
