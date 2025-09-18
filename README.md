@@ -16,14 +16,13 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 
 - 📱 Select the app type from **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps.
 - 🎁 Select the apps you want to update or review the assignments of.
-- 🔀 Select whether you want to **replace** the existing assignments, **add to** existing assignments, or **review** the existing assignments.
+- 🔀 Select whether you want to **replace**, **add to**, or **review** the existing assignments.
 - 💽 Select the installation intent of the assignment from **Required**, **Available**, or **Uninstall**.
 - 🫂 Select the group for assignment from '**All users**', '**All devices**', or an **Entra ID group** with group usage logic built in.
 - 🔄 Select whether you want use **Assignment filters** and the mode from '**Include**' or '**Exclude**', with prompts where apps do not support filters.
 - 🗒 Select the **Assignment Filter** you wish to use as part of the assignment
 - 🪧 If Android or iOS/iPadOS apps select whether you want to create managed device **App Config profiles** for COPE, BYOD, or both.
-
-> Note: If you want to change the App Config profile name, update the `$appConfigPrefix` variables in the script.
+- Option to add a prefix to the Android or iOS/iPadOS App Config Profiles.
 
 ## 🗒 Prerequisites
 
@@ -103,6 +102,10 @@ Then run the script with the corresponding Entra ID Tenant ID, AppId and AppSecr
 ### Windows Apps
 
 ![IntuneAppAssigner](img/iaa-demo-windows.gif)
+
+### Review App Assignments
+
+![IntuneAppAssigner](img/iaa-demo-review.gif)
 
 ## 🚑 Support
 
