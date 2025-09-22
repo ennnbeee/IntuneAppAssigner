@@ -9,7 +9,7 @@
 .LICENSEURI https://github.com/ennnbeee/IntuneAppAssigner/blob/main/LICENSE
 .PROJECTURI https://github.com/ennnbeee/IntuneAppAssigner
 .ICONURI https://raw.githubusercontent.com/ennnbeee/IntuneAppAssigner/refs/heads/main/img/iaa-icon.png
-.EXTERNALMODULEDEPENDENCIES Microsoft.Graph.Authentication
+.EXTERNALMODULEDEPENDENCIES Microsoft.Graph.Authentication Microsoft.PowerShell.ConsoleGuiTools
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
@@ -64,7 +64,7 @@ App Authentication
 param(
 
     [Parameter(Mandatory = $false, HelpMessage = 'Specify an optional profile name prefix for Android and iOS App Config profiles')]
-    [String]$appConfigPrefix = 'AppConfig-',
+    [String]$appConfigPrefix,
 
     [Parameter(Mandatory = $false, HelpMessage = 'Provide the Id of the Entra ID tenant to connect to')]
     [ValidateLength(36, 36)]
@@ -731,13 +731,13 @@ Write-Host '
 Write-Host 'IntuneAppAssigner - Update and review Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
 Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.0 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-21' -ForegroundColor Magenta
-Write-Host "`nIf you have any feedback, please open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-22' -ForegroundColor Magenta
+Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 #endregion intro
 
 #region preflight
 if ($PSVersionTable.PSVersion.Major -eq 5) {
-    Write-Host 'WARNING: PowerShell 5 is not supported, please use PowerShell 7 or later.' -ForegroundColor Yellow
+    Write-Host 'WARNING: PowerShell 5 is not supported, use PowerShell 7 or later.' -ForegroundColor Yellow
     exit
 }
 #endregion preflight
@@ -796,7 +796,7 @@ $missingScopes = $requiredScopes | Where-Object { $_ -notin $currentScopes }
 if ($missingScopes.Count -gt 0) {
     Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Yellow
     $missingScopes | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
-    Write-Host "`nPlease ensure these permissions are granted to the app registration for full functionality." -ForegroundColor Yellow
+    Write-Host "`nEnsure these permissions are granted to the app registration for full functionality." -ForegroundColor Yellow
     exit
 }
 Write-Host 'All required scope permissions are present.' -ForegroundColor Green
@@ -818,9 +818,9 @@ do {
     Write-Host "`n  (4) Windows App Assignment" -ForegroundColor Cyan
     Write-Host "`n  (E) Exit`n" -ForegroundColor White
 
-    $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, 3, 4, or E to exit the script, then press enter'
+    $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
     while ( $choiceAppType -notin ('1', '2', '3', '4', 'E')) {
-        $choiceAppType = Read-Host -Prompt 'Based on which App type, please type 1, 2, 3, 4, or E to exit the script, then press enter'
+        $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
     }
     if ($choiceAppType -eq 'E') {
         exit
@@ -845,7 +845,7 @@ do {
         $appTypeDisplay = 'Windows'
     }
 
-    Write-Host "`nPlease select the $appTypeDisplay Apps you wish to modify or review assignments." -ForegroundColor Cyan
+    Write-Host "`nSelect the $appTypeDisplay Apps you wish to modify or review assignments." -ForegroundColor Cyan
     Start-Sleep -Seconds $rndWait
     $apps = $null
     while ($apps.count -eq 0) {
@@ -861,7 +861,7 @@ do {
         if ($apps.count -eq 0) {
             Clear-Host
             Start-Sleep -Seconds $rndWait
-            Write-Host "`n Please select at least one $appTypeDisplay app to continue." -ForegroundColor Yellow
+            Write-Host "`n Select at least one $appTypeDisplay app to continue." -ForegroundColor Yellow
             Start-Sleep -Seconds $rndWait
         }
     }
@@ -878,9 +878,9 @@ do {
         Write-Host "`n   (3) Review existing assignments" -ForegroundColor Cyan
         Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-        $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, 3, or E to exit the script, then press enter'
+        $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, type 1, 2, 3, or E to exit the script, then press enter'
         while ( ($choiceAssignmentType -notin ('1', '2', '3', 'E'))) {
-            $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, please type 1, 2, 3, or E to exit the script, then press enter'
+            $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, type 1, 2, 3, or E to exit the script, then press enter'
         }
         if ($choiceAssignmentType -eq 'E') {
             exit
@@ -970,9 +970,9 @@ do {
     Write-Host "`n   (4) Remove All Assignments types" -ForegroundColor Red
     Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-    $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3, 4 or E to exit the script, then press enter'
+    $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, type 1, 2, 3, 4 or E to exit the script, then press enter'
     while ( $choiceInstallIntent -notin ('1', '2', '3', '4', 'E')) {
-        $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, please type 1, 2, 3, 4 or E to exit the script, then press enter'
+        $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, type 1, 2, 3, 4 or E to exit the script, then press enter'
     }
     if ($choiceInstallIntent -eq 'E') {
         exit
@@ -995,49 +995,56 @@ do {
     Clear-Host
     Start-Sleep -Seconds $rndWait
     if ($installIntent -ne 'Remove') {
-        Clear-Host
-        Start-Sleep -Seconds $rndWait
-        Write-Host "`n👥  Select which group to assign the apps: " -ForegroundColor White
-        Write-Host "`n   (1) Assign Apps to the 'All devices' group" -ForegroundColor Green
-        Write-Host "`n   (2) Assign Apps to the 'All users' group" -ForegroundColor Green
-        Write-Host "`n   (3) Assign Apps to a selected Group" -ForegroundColor Green
-        Write-Host "`n   (E) Exit`n" -ForegroundColor White
+        do {
+            Clear-Host
+            Start-Sleep -Seconds $rndWait
+            Write-Host "`n👥  Select which group to assign the apps: " -ForegroundColor White
+            Write-Host "`n   (1) Assign Apps to the 'All devices' group" -ForegroundColor Green
+            Write-Host "`n   (2) Assign Apps to the 'All users' group" -ForegroundColor Green
+            Write-Host "`n   (3) Assign Apps to a selected Group" -ForegroundColor Cyan
+            Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-        $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter'
-        while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
-            $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, please type 1, 2, 3, or E to exit the script, then press enter'
-        }
-        if ($choiceAssignmentTarget -eq 'E') {
-            exit
-        }
-        if ($choiceAssignmentTarget -eq '1') {
-            $assignmentType = 'Devices'
-            if ($choiceInstallIntent -eq 2) {
-                Write-Host "Assigning Apps as 'Available' to the 'All Devices' group will not work, please re-run the scrip." -ForegroundColor Red
-                Exit
+            $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, type 1, 2, 3, or E to exit the script, then press enter'
+            while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
+                $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, type 1, 2, 3, or E to exit the script, then press enter'
+            }
+            if ($choiceAssignmentTarget -eq 'E') {
+                exit
+            }
+            if ($choiceAssignmentTarget -eq '1') {
+                $assignmentType = 'Devices'
+                if ($choiceInstallIntent -eq 2) {
+                    Start-Sleep -Seconds $rndWait
+                    Write-Host "Assigning Apps as 'Available' to the 'All Devices' group will not work, re-select a group." -ForegroundColor Red
+                    Start-Sleep -Seconds $rndWait
+                    $decisionGroup = 0
+                }
+            }
+            if ($choiceAssignmentTarget -eq '2') {
+                $assignmentType = 'Users'
+                $decisionGroup = 1
+            }
+            if ($choiceAssignmentTarget -eq '3') {
+                $assignmentType = 'Group'
+                $groupName = $null
+                $decisionGroup = 1
+                if ($choiceInstallIntent -eq 2) {
+                    Write-Host "Assigning Apps as 'Available' to groups containing devices will not work, ensure you select a group containing Users." -ForegroundColor yellow
+                }
+                $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters.'
+                while ($groupName.Length -lt 3) {
+                    $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters.'
+                }
+                Start-Sleep -Seconds $rndWait
+                Write-Host "`nSelect the Group for the assignment." -ForegroundColor Cyan
+                Start-Sleep -Seconds $rndWait
+                $assignmentGroup = $null
+                while ($null -eq $assignmentGroup) {
+                    $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'GroupName'; Expression = 'displayName' }, @{Label = 'GroupID'; Expression = 'id' } | Sort-Object -Property 'GroupName' | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
+                }
             }
         }
-        if ($choiceAssignmentTarget -eq '2') {
-            $assignmentType = 'Users'
-        }
-        if ($choiceAssignmentTarget -eq '3') {
-            $assignmentType = 'Group'
-            $groupName = $null
-            if ($choiceInstallIntent -eq 2) {
-                Write-Host "Assigning Apps as 'Available' to groups containing devices will not work, please ensure you select a group containing Users." -ForegroundColor yellow
-            }
-            $groupName = Read-Host 'Please enter a search term for the Assignment Group of at least three characters.'
-            while ($groupName.Length -lt 3) {
-                $groupName = Read-Host 'Please enter a search term for the Assignment Group of at least three characters.'
-            }
-            Start-Sleep -Seconds $rndWait
-            Write-Host "`nPlease select the Group for the assignment." -ForegroundColor Cyan
-            Start-Sleep -Seconds $rndWait
-            $assignmentGroup = $null
-            while ($null -eq $assignmentGroup) {
-                $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'GroupName'; Expression = 'displayName' }, @{Label = 'GroupID'; Expression = 'id' } | Sort-Object -Property 'GroupName' | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
-            }
-        }
+        until ($decisionGroup -eq 1)
 
         Clear-Host
         Start-Sleep -Seconds $rndWait
@@ -1047,9 +1054,9 @@ do {
         Write-Host "`n   (3) No Filters" -ForegroundColor Cyan
         Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-        $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, please type 1, 2, 3, or E to exit the script, then press enter'
+        $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, type 1, 2, 3, or E to exit the script, then press enter'
         while ( $choiceAssignmentFilter -notin ('1', '2', '3', 'E')) {
-            $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, please type 1, 2, 3, or E to exit the script, then press enter'
+            $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, type 1, 2, 3, or E to exit the script, then press enter'
         }
         if ($choiceAssignmentFilter -eq 'E') {
             exit
@@ -1086,9 +1093,9 @@ do {
         Write-Host "`n   (2) Do not create App Config profiles" -ForegroundColor Cyan
         Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-        $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, please type 1, 2, or E to exit the script, then press enter'
+        $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
         while ( ($choiceAppConfig -notin ('1', '2', 'E'))) {
-            $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, please type 1, 2, or E to exit the script, then press enter'
+            $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
         }
         if ($choiceAppConfig -eq 'E') {
             exit
@@ -1103,9 +1110,9 @@ do {
             Write-Host "`n   (3) Only BYOD profiles" -ForegroundColor Yellow
             Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-            $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, please type 1, 2, 3, or E to exit the script, then press enter'
+            $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
             while ( ($choiceAppConfigOwnership -notin ('1', '2', '3', 'E'))) {
-                $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, please type 1, 2, 3, or E to exit the script, then press enter'
+                $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
             }
             if ($choiceAppConfigOwnership -eq 'E') {
                 exit
@@ -1153,7 +1160,7 @@ do {
             Write-Host "All $assignmentType"
         }
         if ($filtering -eq 'Yes') {
-            Write-Host "`nThe following Assignment Filter has been selected with Filter mode: $filterMode`:" -ForegroundColor Cyan
+            Write-Host "`nThe following Assignment Filter has been selected with Filter mode $filterMode`:" -ForegroundColor Cyan
             Write-Host "$($assignmentFilter.FilterName)"
             Write-Host
             foreach ($app in $apps) {
@@ -1170,9 +1177,9 @@ do {
         Write-Host "`nApp Configuration profiles will be created for apps that support IntuneMAMUPN." -ForegroundColor Cyan
     }
 
-    $decisionConfirm = Read-YesNoChoice -Title '⏯  Please review the above setting before proceeding' -Message 'Do you want to assign the selected Apps with above settings?' -DefaultOption 1
+    $decisionConfirm = Read-YesNoChoice -Title '⏯  Review the above settings before proceeding' -Message 'Do you want to assign the selected Apps with above settings?' -DefaultOption 1
     if ($decisionConfirm -eq 0) {
-        Write-Host '⛔  Exiting script, please re-run the script to make any changes.' -ForegroundColor Yellow
+        Write-Host '⛔  Exiting script, re-run the script to make any changes.' -ForegroundColor Yellow
         exit
     }
     else {
