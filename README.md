@@ -22,7 +22,7 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 - 🔄 Select whether you want use **Assignment filters** and with mode '**Include**' or '**Exclude**', with prompts where apps do not support filters.
 - 🎯 Select the **Assignment Filter** you wish to use as part of the assignment
 - 🪧 If Android or iOS/iPadOS apps select whether you want to create managed device **App Config profiles** for COPE, BYOD, or both.
-- 🗒 Option to add a prefix to the Android or iOS/iPadOS App Config Profiles.
+- 🗒 Option to add a prefix to the Android or iOS/iPadOS App Config Profiles using the `appConfigPrefix` parameter.
 
 ## 🗒 Prerequisites
 
@@ -35,7 +35,9 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 
 ## 🔄 Updates
 
-- **v0.4.0**
+- **v0.4.1**
+  - Bug fixes
+- v0.4.0
   - Supports the Uninstall assignment intent
   - Allows for review of existing assignments
 - v0.3.0

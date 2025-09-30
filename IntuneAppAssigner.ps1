@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.4.0
+.VERSION 0.4.1
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.4.1 - Bug fixes
 v0.4.0 - Updated to include assignment review mode and uninstall intent
 v0.3.0 - Support for Windows apps
 v0.2.1 - Bug Fixes
@@ -712,6 +713,14 @@ function Read-YesNoChoice {
 }
 #endregion Functions
 
+#region variables
+$requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
+[String[]]$scopes = $requiredScopes -join ', '
+$rndWait = Get-Random -Minimum 1 -Maximum 2
+$noFiltering = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSDmgApp')
+$noUninstall = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSOfficeSuiteApp', '#microsoft.graph.macOSMicrosoftDefenderApp', '#microsoft.graph.macOSMicrosoftEdgeApp')
+#endregion variables
+
 #region intro
 Write-Host '
  _______         __
@@ -730,9 +739,10 @@ Write-Host '
 
 Write-Host 'IntuneAppAssigner - Update and review Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.0 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-22' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.1 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-30' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
+Start-Sleep -Seconds $rndWait
 #endregion intro
 
 #region preflight
@@ -741,14 +751,6 @@ if ($PSVersionTable.PSVersion.Major -eq 5) {
     exit
 }
 #endregion preflight
-
-#region variables
-$requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
-[String[]]$scopes = $requiredScopes -join ', '
-$rndWait = Get-Random -Minimum 1 -Maximum 2
-$noFiltering = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSDmgApp')
-$noUninstall = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSOfficeSuiteApp', '#microsoft.graph.macOSMicrosoftDefenderApp', '#microsoft.graph.macOSMicrosoftEdgeApp')
-#endregion variables
 
 #region module check
 $modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
@@ -799,7 +801,10 @@ if ($missingScopes.Count -gt 0) {
     Write-Host "`nEnsure these permissions are granted to the app registration for full functionality." -ForegroundColor Yellow
     exit
 }
-Write-Host 'All required scope permissions are present.' -ForegroundColor Green
+else {
+    Write-Host 'All required scope permissions are present.' -ForegroundColor Green
+}
+Start-Sleep -Seconds $rndWait
 #endregion scopes
 
 #region Script
@@ -1174,7 +1179,7 @@ do {
         Write-Host 'All Assignments will be removed.' -ForegroundColor Red
     }
     if ($appConfig -eq 'Yes') {
-        Write-Host "`nApp Configuration profiles will be created for apps that support IntuneMAMUPN." -ForegroundColor Cyan
+        Write-Host "`nApp Configuration profiles will be created for apps that support the 'Work/School Account only' setting." -ForegroundColor Cyan
     }
 
     $decisionConfirm = Read-YesNoChoice -Title '⏯  Review the above settings before proceeding' -Message 'Do you want to assign the selected Apps with above settings?' -DefaultOption 1
@@ -1468,7 +1473,7 @@ do {
                 }
             }
             else {
-                Write-Host "⏭  Skipping creation of App Config profile as $($app.AppName) as does not support IntuneMAMUPN settings." -ForegroundColor Cyan
+                Write-Host "⏭  Skipping creation of App Config profile, $($app.AppName) does not support the 'Work/School account only' setting." -ForegroundColor Cyan
             }
         }
     }
