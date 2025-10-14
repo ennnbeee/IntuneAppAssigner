@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.4.1
+.VERSION 0.4.2
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.4.2 - Logic improvements
 v0.4.1 - Bug fixes
 v0.4.0 - Updated to include assignment review mode and uninstall intent
 v0.3.0 - Support for Windows apps
@@ -739,8 +740,8 @@ Write-Host '
 
 Write-Host 'IntuneAppAssigner - Update and review Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.1 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-09-30' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.2 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-10-14' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion intro
@@ -827,27 +828,28 @@ do {
     while ( $choiceAppType -notin ('1', '2', '3', '4', 'E')) {
         $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
     }
-    if ($choiceAppType -eq 'E') {
-        exit
-    }
-    if ($choiceAppType -eq '1') {
-        $appType = 'android'
-        $appTypeDisplay = 'Android'
-        $appPackage = 'packageId'
-    }
-    if ($choiceAppType -eq '2') {
-        $appType = 'ios'
-        $appTypeDisplay = 'iOS/iPadOS'
-        $appPackage = 'bundleId'
-    }
-    if ($choiceAppType -eq '3') {
-        $appType = 'macOS'
-        $appTypeDisplay = 'macOS'
-    }
-    if ($choiceAppType -eq '4') {
-        $appType = 'win'
-        $appTypeOffice = 'office'
-        $appTypeDisplay = 'Windows'
+
+    switch ($choiceAppType) {
+        '1' {
+            $appType = 'android'
+            $appTypeDisplay = 'Android'
+            $appPackage = 'packageId'
+        }
+        '2' {
+            $appType = 'ios'
+            $appTypeDisplay = 'iOS/iPadOS'
+            $appPackage = 'bundleId'
+        }
+        '3' {
+            $appType = 'macOS'
+            $appTypeDisplay = 'macOS'
+        }
+        '4' {
+            $appType = 'win'
+            $appTypeOffice = 'office'
+            $appTypeDisplay = 'Windows'
+        }
+        'E' { exit }
     }
 
     Write-Host "`nSelect the $appTypeDisplay Apps you wish to modify or review assignments." -ForegroundColor Cyan
@@ -887,19 +889,17 @@ do {
         while ( ($choiceAssignmentType -notin ('1', '2', '3', 'E'))) {
             $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, type 1, 2, 3, or E to exit the script, then press enter'
         }
-        if ($choiceAssignmentType -eq 'E') {
-            exit
-        }
-        if ($choiceAssignmentType -eq '1') {
-            $action = 'Replace'
-            $decisionReview = 0
-        }
-        if ($choiceAssignmentType -eq '2') {
-            $action = 'Add'
-            $decisionReview = 0
-        }
-        if ($choiceAssignmentType -eq '3') {
-            $action = 'Review'
+        switch ($choiceAssignmentType) {
+            '1' {
+                $action = 'Replace'
+                $decisionReview = 0
+            }
+            '2' {
+                $action = 'Add'
+                $decisionReview = 0
+            }
+            '3' { $action = 'Review' }
+            'E' { exit }
         }
         #endregion assignment actions
 
@@ -979,20 +979,13 @@ do {
     while ( $choiceInstallIntent -notin ('1', '2', '3', '4', 'E')) {
         $choiceInstallIntent = Read-Host -Prompt 'Based on which Install Intent type, type 1, 2, 3, 4 or E to exit the script, then press enter'
     }
-    if ($choiceInstallIntent -eq 'E') {
-        exit
-    }
-    if ($choiceInstallIntent -eq '1') {
-        $installIntent = 'Required'
-    }
-    if ($choiceInstallIntent -eq '2') {
-        $installIntent = 'Available'
-    }
-    if ($choiceInstallIntent -eq '3') {
-        $installIntent = 'Uninstall'
-    }
-    if ($choiceInstallIntent -eq '4') {
-        $installIntent = 'Remove'
+
+    switch ($choiceInstallIntent) {
+        '1' { $installIntent = 'Required' }
+        '2' { $installIntent = 'Available' }
+        '3' { $installIntent = 'Uninstall' }
+        '4' { $installIntent = 'Remove' }
+        'E' { exit }
     }
     #endregion Install Intent
 
@@ -1013,40 +1006,42 @@ do {
             while ( $choiceAssignmentTarget -notin ('1', '2', '3', 'E')) {
                 $choiceAssignmentTarget = Read-Host -Prompt 'Based on which assignment type, type 1, 2, 3, or E to exit the script, then press enter'
             }
-            if ($choiceAssignmentTarget -eq 'E') {
-                exit
-            }
-            if ($choiceAssignmentTarget -eq '1') {
-                $assignmentType = 'Devices'
-                if ($choiceInstallIntent -eq 2) {
+
+            switch ($choiceAssignmentTarget) {
+                '1' {
+                    $assignmentType = 'Devices'
+                    if ($choiceInstallIntent -eq 2) {
+                        Start-Sleep -Seconds $rndWait
+                        Write-Host "Assigning Apps as 'Available' to the 'All Devices' group will not work, re-select a group." -ForegroundColor Red
+                        Start-Sleep -Seconds $rndWait
+                        $decisionGroup = 0
+                    }
+                    $decisionGroup = 1
+                }
+                '2' {
+                    $assignmentType = 'Users'
+                    $decisionGroup = 1
+                }
+                '3' {
+                    $assignmentType = 'Group'
+                    $groupName = $null
+                    $decisionGroup = 1
+                    if ($choiceInstallIntent -eq 2) {
+                        Write-Host "Assigning Apps as 'Available' to groups containing devices will not work, ensure you select a group containing Users." -ForegroundColor yellow
+                    }
+                    $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters'
+                    while ($groupName.Length -lt 3) {
+                        $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters'
+                    }
                     Start-Sleep -Seconds $rndWait
-                    Write-Host "Assigning Apps as 'Available' to the 'All Devices' group will not work, re-select a group." -ForegroundColor Red
+                    Write-Host "`nSelect the Group for the assignment." -ForegroundColor Cyan
                     Start-Sleep -Seconds $rndWait
-                    $decisionGroup = 0
+                    $assignmentGroup = $null
+                    while ($null -eq $assignmentGroup) {
+                        $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'GroupName'; Expression = 'displayName' }, @{Label = 'GroupID'; Expression = 'id' } | Sort-Object -Property 'GroupName' | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
+                    }
                 }
-            }
-            if ($choiceAssignmentTarget -eq '2') {
-                $assignmentType = 'Users'
-                $decisionGroup = 1
-            }
-            if ($choiceAssignmentTarget -eq '3') {
-                $assignmentType = 'Group'
-                $groupName = $null
-                $decisionGroup = 1
-                if ($choiceInstallIntent -eq 2) {
-                    Write-Host "Assigning Apps as 'Available' to groups containing devices will not work, ensure you select a group containing Users." -ForegroundColor yellow
-                }
-                $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters.'
-                while ($groupName.Length -lt 3) {
-                    $groupName = Read-Host 'Enter a search term for the Assignment Group of at least three characters.'
-                }
-                Start-Sleep -Seconds $rndWait
-                Write-Host "`nSelect the Group for the assignment." -ForegroundColor Cyan
-                Start-Sleep -Seconds $rndWait
-                $assignmentGroup = $null
-                while ($null -eq $assignmentGroup) {
-                    $assignmentGroup = Get-MDMGroup -GroupName $groupName | Select-Object -Property @{Label = 'GroupName'; Expression = 'displayName' }, @{Label = 'GroupID'; Expression = 'id' } | Sort-Object -Property 'GroupName' | Out-ConsoleGridView -Title 'Select Assignment Group' -OutputMode Single
-                }
+                'E' { exit }
             }
         }
         until ($decisionGroup -eq 1)
@@ -1063,19 +1058,12 @@ do {
         while ( $choiceAssignmentFilter -notin ('1', '2', '3', 'E')) {
             $choiceAssignmentFilter = Read-Host -Prompt 'Based on which Filter mode, type 1, 2, 3, or E to exit the script, then press enter'
         }
-        if ($choiceAssignmentFilter -eq 'E') {
-            exit
-        }
-        if ($choiceAssignmentFilter -eq '1') {
-            $filtering = 'Yes'
-            $filterMode = 'Include'
-        }
-        if ($choiceAssignmentFilter -eq '2') {
-            $filtering = 'Yes'
-            $filterMode = 'Exclude'
-        }
-        if ($choiceAssignmentFilter -eq '3') {
-            $filtering = 'No'
+
+        switch ($choiceAssignmentFilter) {
+            '1' { $filtering = 'Yes'; $filterMode = 'Include' }
+            '2' { $filtering = 'Yes'; $filterMode = 'Exclude' }
+            '3' { $filtering = 'No' }
+            'E' { exit }
         }
         Start-Sleep -Seconds $rndWait
         if ($filtering -eq 'Yes') {
@@ -1102,38 +1090,32 @@ do {
         while ( ($choiceAppConfig -notin ('1', '2', 'E'))) {
             $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
         }
-        if ($choiceAppConfig -eq 'E') {
-            exit
-        }
-        if ($choiceAppConfig -eq '1') {
-            $appConfig = 'Yes'
-            Clear-Host
-            Start-Sleep -Seconds $rndWait
-            Write-Host "`n🏢  Select which App Config profiles should be created:" -ForegroundColor White
-            Write-Host "`n   (1) Both COPE and BYOD profiles" -ForegroundColor Green
-            Write-Host "`n   (2) Only COPE profiles" -ForegroundColor Cyan
-            Write-Host "`n   (3) Only BYOD profiles" -ForegroundColor Yellow
-            Write-Host "`n   (E) Exit`n" -ForegroundColor White
 
-            $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
-            while ( ($choiceAppConfigOwnership -notin ('1', '2', '3', 'E'))) {
+        switch ($choiceAppConfig) {
+            '1' {
+                $appConfig = 'Yes'
+                Clear-Host
+                Start-Sleep -Seconds $rndWait
+                Write-Host "`n🏢  Select which App Config profiles should be created:" -ForegroundColor White
+                Write-Host "`n   (1) Both COPE and BYOD profiles" -ForegroundColor Green
+                Write-Host "`n   (2) Only COPE profiles" -ForegroundColor Cyan
+                Write-Host "`n   (3) Only BYOD profiles" -ForegroundColor Yellow
+                Write-Host "`n   (E) Exit`n" -ForegroundColor White
+
                 $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
+                while ( ($choiceAppConfigOwnership -notin ('1', '2', '3', 'E'))) {
+                    $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
+                }
+
+                switch ($choiceAppConfigOwnership) {
+                    '1' { $appConfigOwnership = 'Both' }
+                    '2' { $appConfigOwnership = 'COPE' }
+                    '3' { $appConfigOwnership = 'BYOD' }
+                    'E' { exit }
+                }
             }
-            if ($choiceAppConfigOwnership -eq 'E') {
-                exit
-            }
-            if ($choiceAppConfigOwnership -eq '1') {
-                $appConfigOwnership = 'Both'
-            }
-            if ($choiceAppConfigOwnership -eq '2') {
-                $appConfigOwnership = 'COPE'
-            }
-            if ($choiceAppConfigOwnership -eq '3') {
-                $appConfigOwnership = 'BYOD'
-            }
-        }
-        if ($choiceAppConfig -eq '2') {
-            $appConfig = 'No'
+            '2' { $appConfig = 'No' }
+            'E' { exit }
         }
     }
     #endregion App Config

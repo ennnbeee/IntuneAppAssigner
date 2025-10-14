@@ -35,7 +35,9 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 
 ## 🔄 Updates
 
-- **v0.4.1**
+- **v0.4.2**
+  - Logic improvements
+- v0.4.1
   - Bug fixes
 - v0.4.0
   - Supports the Uninstall assignment intent
