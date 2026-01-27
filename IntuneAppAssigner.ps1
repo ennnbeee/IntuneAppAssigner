@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.4.2
+.VERSION 0.4.3
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.4.3 - Option to export app assignments
 v0.4.2 - Logic improvements
 v0.4.1 - Bug fixes
 v0.4.0 - Updated to include assignment review mode and uninstall intent
@@ -153,7 +154,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
                 Write-Host 'Version 1 Module Detected'
                 Select-MgProfile -Name Beta
             }
-            $graph = Connect-MgGraph -Scopes $scopes -TenantId $tenantId
+            $graph = Connect-MgGraph -TenantId $tenantId -Scopes $scopes
             Write-Host "Connected to Intune tenant $($graph.TenantId)"
         }
     }
@@ -715,11 +716,30 @@ function Read-YesNoChoice {
 #endregion Functions
 
 #region variables
+$tenantId = '69b2ff03-08b5-4781-b7ea-af7ffbf790c4'
 $requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
 [String[]]$scopes = $requiredScopes -join ', '
 $rndWait = Get-Random -Minimum 1 -Maximum 2
 $noFiltering = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSDmgApp')
 $noUninstall = @('#microsoft.graph.macOSPkgApp', '#microsoft.graph.macOSOfficeSuiteApp', '#microsoft.graph.macOSMicrosoftDefenderApp', '#microsoft.graph.macOSMicrosoftEdgeApp')
+
+$pathToScript = if ( $PSScriptRoot ) {
+    # Console or vscode debug/run button/F5 temp console
+    $PSScriptRoot
+}
+else {
+    if ( $psISE ) { Split-Path -Path $psISE.CurrentFile.FullPath }
+    else {
+        if ($profile -match 'VScode') {
+            # vscode "Run Code Selection" button/F8 in integrated console
+            Split-Path $psEditor.GetEditorContext().CurrentFile.Path
+        }
+        else {
+            Write-Output 'unknown directory to set path variable. exiting script.'
+            exit 0
+        }
+    }
+}
 #endregion variables
 
 #region intro
@@ -815,61 +835,72 @@ do {
     #endregion clear variables for reruns
 
     #region App Type
-    Start-Sleep -Seconds $rndWait
-    Clear-Host
-    Write-Host "`n📱 Select which app type:" -ForegroundColor White
-    Write-Host "`n  (1) Android App Assignment" -ForegroundColor Green
-    Write-Host "`n  (2) iOS/iPadOS App Assignment" -ForegroundColor Blue
-    Write-Host "`n  (3) macOS App Assignment" -ForegroundColor Magenta
-    Write-Host "`n  (4) Windows App Assignment" -ForegroundColor Cyan
-    Write-Host "`n  (E) Exit`n" -ForegroundColor White
+    $availableApps = $null
+    while ($availableApps.count -eq 0) {
+        Start-Sleep -Seconds $rndWait
+        Clear-Host
+        Write-Host "`n📱 Select which app type:" -ForegroundColor White
+        Write-Host "`n  (1) Android App Assignment" -ForegroundColor Green
+        Write-Host "`n  (2) iOS/iPadOS App Assignment" -ForegroundColor Blue
+        Write-Host "`n  (3) macOS App Assignment" -ForegroundColor Magenta
+        Write-Host "`n  (4) Windows App Assignment" -ForegroundColor Cyan
+        Write-Host "`n  (E) Exit`n" -ForegroundColor White
 
-    $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
-    while ( $choiceAppType -notin ('1', '2', '3', '4', 'E')) {
         $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
-    }
+        while ( $choiceAppType -notin ('1', '2', '3', '4', 'E')) {
+            $choiceAppType = Read-Host -Prompt 'Based on which App type, type 1, 2, 3, 4, or E to exit the script, then press enter'
+        }
 
-    switch ($choiceAppType) {
-        '1' {
-            $appType = 'android'
-            $appTypeDisplay = 'Android'
-            $appPackage = 'packageId'
+        switch ($choiceAppType) {
+            '1' {
+                $appType = 'android'
+                $appTypeDisplay = 'Android'
+                $appPackage = 'packageId'
+            }
+            '2' {
+                $appType = 'ios'
+                $appTypeDisplay = 'iOS/iPadOS'
+                $appPackage = 'bundleId'
+            }
+            '3' {
+                $appType = 'macOS'
+                $appTypeDisplay = 'macOS'
+            }
+            '4' {
+                $appType = 'win'
+                $appTypeOffice = 'office'
+                $appTypeDisplay = 'Windows'
+            }
+            'E' { exit }
         }
-        '2' {
-            $appType = 'ios'
-            $appTypeDisplay = 'iOS/iPadOS'
-            $appPackage = 'bundleId'
-        }
-        '3' {
-            $appType = 'macOS'
-            $appTypeDisplay = 'macOS'
-        }
-        '4' {
-            $appType = 'win'
-            $appTypeOffice = 'office'
-            $appTypeDisplay = 'Windows'
-        }
-        'E' { exit }
-    }
 
-    Write-Host "`nSelect the $appTypeDisplay Apps you wish to modify or review assignments." -ForegroundColor Cyan
-    Start-Sleep -Seconds $rndWait
-    $apps = $null
-    while ($apps.count -eq 0) {
-        if ($appType -eq 'ios' -or $appType -eq 'android') {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' }, @{Label = 'AppPackage'; Expression = $appPackage } | Sort-Object -Property 'AppName' | Out-ConsoleGridView -Title 'Select apps to assign or review' -OutputMode Multiple)
-        }
-        elseif ($appType -eq 'macOS') {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' } | Sort-Object -Property 'AppName' | Out-ConsoleGridView -Title 'Select apps to assign or review' -OutputMode Multiple)
-        }
-        else {
-            $apps = @(Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) -or ($_.'@odata.type').contains($appTypeOffice) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' } | Sort-Object -Property 'AppName' | Out-ConsoleGridView -Title 'Select apps to assign or review' -OutputMode Multiple)
-        }
-        if ($apps.count -eq 0) {
-            Clear-Host
-            Start-Sleep -Seconds $rndWait
-            Write-Host "`n Select at least one $appTypeDisplay app to continue." -ForegroundColor Yellow
-            Start-Sleep -Seconds $rndWait
+        Write-Host "`nSelect the $appTypeDisplay Apps you wish to modify or review assignments." -ForegroundColor Cyan
+        Start-Sleep -Seconds $rndWait
+        $apps = $null
+        while ($apps.count -eq 0) {
+            if ($appType -eq 'ios' -or $appType -eq 'android') {
+                $availableApps = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' }, @{Label = 'AppPackage'; Expression = $appPackage } | Sort-Object -Property 'AppName'
+            }
+            elseif ($appType -eq 'macOS') {
+                $availableApps = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' } | Sort-Object -Property 'AppName'
+            }
+            else {
+                $availableApps = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains($appType) -or ($_.'@odata.type').contains($appTypeOffice) } | Select-Object -Property @{Label = 'AppName'; Expression = 'displayName' }, @{Label = 'AppPublisher'; Expression = 'publisher' }, @{Label = 'AppType'; Expression = '@odata.type' }, @{Label = 'AppID'; Expression = 'id' } | Sort-Object -Property 'AppName'
+            }
+
+            if ($null -ne $availableApps) {
+                $apps = @($availableApps | Out-ConsoleGridView -Title 'Select apps to assign or review' -OutputMode Multiple)
+                if ($apps.count -eq 0) {
+                    Clear-Host
+                    Start-Sleep -Seconds $rndWait
+                    Write-Host "`n Select at least one $appTypeDisplay app to continue." -ForegroundColor Yellow
+                    Start-Sleep -Seconds $rndWait
+                }
+            }
+            else {
+                Write-Host "`nNo $appTypeDisplay apps found in Intune, please select a new operating system." -ForegroundColor Yellow
+                Start-Sleep -Seconds $rndWait
+            }
         }
     }
     #endregion App Type
@@ -955,6 +986,14 @@ do {
             Write-Host "`nThe below are the existing $appTypeDisplay app assignments:" -ForegroundColor Cyan
             $appAssignmentReport | Format-Table -AutoSize
             Write-Host "`n✨ All existing assignments for the selected $appTypeDisplay apps captured." -ForegroundColor Green
+
+            $decisionExport = Read-YesNoChoice -Title '📝 Export Review to CSV' -Message 'Do you want to export the above assignment report to a CSV?' -DefaultOption 1
+            if ($decisionExport -eq 1) {
+                $timeStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+                $exportPath = "$pathToScript\AppAssignmentsReview-$appType-$timeStamp.csv"
+                $appAssignmentReport | Export-Csv -Path $exportPath -NoTypeInformation -Encoding UTF8
+                Write-Host "`n✅ Exported app assignments to $exportPath" -ForegroundColor Green
+            }
             $decisionReview = Read-YesNoChoice -Title '♻  Continue the Script' -Message 'Do you want to amend these app assignments?' -DefaultOption 1
             if ($decisionReview -eq 0) {
                 exit

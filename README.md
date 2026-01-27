@@ -15,8 +15,9 @@ IntuneAppAssigner is currently in Public Preview, meaning that although the it i
 Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS, macOS, or Windows apps, with the following options:
 
 - 📱 Select the app type from **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps.
-- 🎁 Select the apps you want to update or review the assignments of.
+- 🎁 Select the apps you want to update or review the assignments.
 - 🔀 Select whether you want to **replace**, **add to**, or **review** the existing assignments.
+- 📝 Select whether you want to export the review of assignments to CSV.
 - 💽 Select the installation intent of the assignment from **Required**, **Available**, or **Uninstall**.
 - 🫂 Select the group for assignment from '**All users**', '**All devices**', or an **Entra ID group** with group usage logic built in.
 - 🔄 Select whether you want use **Assignment filters** and with mode '**Include**' or '**Exclude**', with prompts where apps do not support filters.
@@ -35,7 +36,10 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 
 ## 🔄 Updates
 
-- **v0.4.2**
+- **v0.4.3**
+  - Added option to export the review of assignments to CSV
+  - Fixed issue with infinite loop when no applications are available for an OS
+- v0.4.2
   - Logic improvements
 - v0.4.1
   - Bug fixes
