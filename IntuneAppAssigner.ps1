@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.4.3
+.VERSION 0.4.4
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.4.4 - Logic improvements and bug fixes
 v0.4.3 - Option to export app assignments
 v0.4.2 - Logic improvements
 v0.4.1 - Bug fixes
@@ -716,7 +717,7 @@ function Read-YesNoChoice {
 #endregion Functions
 
 #region variables
-$tenantId = '69b2ff03-08b5-4781-b7ea-af7ffbf790c4'
+#$tenantId = ''
 $requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
 [String[]]$scopes = $requiredScopes -join ', '
 $rndWait = Get-Random -Minimum 1 -Maximum 2
