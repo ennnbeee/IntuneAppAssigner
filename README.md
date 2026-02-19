@@ -37,7 +37,7 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 ## 🔄 Updates
 
 - **v0.4.4**
-  - Logic and UX improvements
+  - Improved logic around AppConfig policies
 - v0.4.3
   - Added option to export the review of assignments to CSV
   - Fixed issue with infinite loop when no applications are available for an OS

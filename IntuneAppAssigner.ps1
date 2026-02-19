@@ -13,7 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
-v0.4.4 - Logic improvements and bug fixes
+v0.4.4 - Logic improvements for App Config and bug fixes
 v0.4.3 - Option to export app assignments
 v0.4.2 - Logic improvements
 v0.4.1 - Bug fixes
@@ -791,6 +791,7 @@ else {
 #endregion variables
 
 #region intro
+Clear-Host
 Write-Host '
  _______         __
 |_     _|.-----.|  |_.--.--.-----.-----.' -ForegroundColor Cyan -NoNewline
@@ -806,7 +807,7 @@ Write-Host '
          |__|  |__|                             |_____|
 ' -ForegroundColor Green
 
-Write-Host 'IntuneAppAssigner - Update and review Mobile Apps Assignments in bulk.' -ForegroundColor Green
+Write-Host 'IntuneAppAssigner - Update and review App Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
 Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.4 Public Preview' -ForegroundColor Yellow -NoNewline
 Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-02-19' -ForegroundColor Magenta
@@ -900,25 +901,10 @@ do {
         }
 
         switch ($choiceAppType) {
-            '1' {
-                $appType = 'android'
-                $appTypeDisplay = 'Android'
-                $appPackage = 'packageId'
-            }
-            '2' {
-                $appType = 'ios'
-                $appTypeDisplay = 'iOS/iPadOS'
-                $appPackage = 'bundleId'
-            }
-            '3' {
-                $appType = 'macOS'
-                $appTypeDisplay = 'macOS'
-            }
-            '4' {
-                $appType = 'win'
-                $appTypeOffice = 'office'
-                $appTypeDisplay = 'Windows'
-            }
+            '1' { $appType = 'android'; $appTypeDisplay = 'Android'; $appPackage = 'packageId' }
+            '2' { $appType = 'ios'; $appTypeDisplay = 'iOS/iPadOS'; $appPackage = 'bundleId' }
+            '3' { $appType = 'macOS'; $appTypeDisplay = 'macOS' }
+            '4' { $appType = 'win'; $appTypeOffice = 'office'; $appTypeDisplay = 'Windows' }
             'E' { exit }
         }
 
@@ -969,14 +955,8 @@ do {
             $choiceAssignmentType = Read-Host -Prompt 'Based on which Assignment Action, type 1, 2, 3, or E to exit the script, then press enter'
         }
         switch ($choiceAssignmentType) {
-            '1' {
-                $action = 'Replace'
-                $decisionReview = 0
-            }
-            '2' {
-                $action = 'Add'
-                $decisionReview = 0
-            }
+            '1' { $action = 'Replace'; $decisionReview = 0 }
+            '2' { $action = 'Add'; $decisionReview = 0 }
             '3' { $action = 'Review' }
             'E' { exit }
         }
@@ -1105,10 +1085,7 @@ do {
                     }
                     $decisionGroup = 1
                 }
-                '2' {
-                    $assignmentType = 'Users'
-                    $decisionGroup = 1
-                }
+                '2' { $assignmentType = 'Users'; $decisionGroup = 1 }
                 '3' {
                     $assignmentType = 'Group'
                     $groupName = $null
@@ -1166,43 +1143,81 @@ do {
 
     #region App Config
     if (($appType -eq 'ios' -or $appType -eq 'android') -and ($installIntent -ne 'Remove')) {
-        Clear-Host
-        Start-Sleep -Seconds $rndWait
-        Write-Host "`n🪧  Select if Work Account App Config profiles should be created:" -ForegroundColor White
-        Write-Host "`n   (1) Create App Config profiles" -ForegroundColor Green
-        Write-Host "`n   (2) Do not create App Config profiles" -ForegroundColor Cyan
-        Write-Host "`n   (E) Exit`n" -ForegroundColor White
-
-        $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
-        while ( ($choiceAppConfig -notin ('1', '2', 'E'))) {
-            $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
+        $intuneMAMApps = $null
+        if ($appType -eq 'android') {
+            $appsIntuneMAM = @(
+                'com.microsoft.office.officehubrow'
+                'com.microsoft.office.word'
+                'com.microsoft.office.excel'
+                'com.microsoft.office.powerpoint'
+                'com.microsoft.office.onenote'
+                'com.microsoft.emmx'
+                'com.microsoft.skydrive'
+                'com.microsoft.office.outlook'
+                'com.microsoft.teams'
+                'com.microsoft.copilot'
+            )
         }
+        else {
+            $appsIntuneMAM = @(
+                'com.microsoft.officemobile'
+                'com.microsoft.Office.Word'
+                'com.microsoft.Office.Excel'
+                'com.microsoft.Office.Powerpoint'
+                'com.microsoft.office.onenote'
+                'com.microsoft.msedge'
+                'com.microsoft.skydrive'
+                'com.microsoft.Office.Outlook'
+                'com.microsoft.skype.teams'
+                'com.microsoft.copilot'
+                'com.microsoft.onenote'
+            )
+        }
+        $apps | ForEach-Object {
+            if ($_.AppPackage -in $appsIntuneMAM) {
+                $intuneMAMApps = 'Yes'
 
-        switch ($choiceAppConfig) {
-            '1' {
-                $appConfig = 'Yes'
-                Clear-Host
-                Start-Sleep -Seconds $rndWait
-                Write-Host "`n🏢  Select which App Config profiles should be created:" -ForegroundColor White
-                Write-Host "`n   (1) Both COPE and BYOD profiles" -ForegroundColor Green
-                Write-Host "`n   (2) Only COPE profiles" -ForegroundColor Cyan
-                Write-Host "`n   (3) Only BYOD profiles" -ForegroundColor Yellow
-                Write-Host "`n   (E) Exit`n" -ForegroundColor White
-
-                $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
-                while ( ($choiceAppConfigOwnership -notin ('1', '2', '3', 'E'))) {
-                    $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
-                }
-
-                switch ($choiceAppConfigOwnership) {
-                    '1' { $appConfigOwnership = 'Both' }
-                    '2' { $appConfigOwnership = 'COPE' }
-                    '3' { $appConfigOwnership = 'BYOD' }
-                    'E' { exit }
-                }
             }
-            '2' { $appConfig = 'No' }
-            'E' { exit }
+        }
+        if ($intuneMAMApps -eq 'Yes') {
+            Clear-Host
+            Start-Sleep -Seconds $rndWait
+            Write-Host "`n🪧  Select if Work Account App Config profiles should be created:" -ForegroundColor White
+            Write-Host "`n   (1) Create App Config profiles" -ForegroundColor Green
+            Write-Host "`n   (2) Do not create App Config profiles" -ForegroundColor Cyan
+            Write-Host "`n   (E) Exit`n" -ForegroundColor White
+
+            $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
+            while ( ($choiceAppConfig -notin ('1', '2', 'E'))) {
+                $choiceAppConfig = Read-Host -Prompt 'Based on whether App Config profiles should be created, type 1, 2, or E to exit the script, then press enter'
+            }
+
+            switch ($choiceAppConfig) {
+                '1' {
+                    $appConfig = 'Yes'
+                    Clear-Host
+                    Start-Sleep -Seconds $rndWait
+                    Write-Host "`n🏢  Select which App Config profiles should be created:" -ForegroundColor White
+                    Write-Host "`n   (1) Both COPE and BYOD profiles" -ForegroundColor Green
+                    Write-Host "`n   (2) Only COPE profiles" -ForegroundColor Cyan
+                    Write-Host "`n   (3) Only BYOD profiles" -ForegroundColor Yellow
+                    Write-Host "`n   (E) Exit`n" -ForegroundColor White
+
+                    $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
+                    while ( ($choiceAppConfigOwnership -notin ('1', '2', '3', 'E'))) {
+                        $choiceAppConfigOwnership = Read-Host -Prompt 'Based on which App Config profiles should be created, type 1, 2, 3, or E to exit the script, then press enter'
+                    }
+
+                    switch ($choiceAppConfigOwnership) {
+                        '1' { $appConfigOwnership = 'Both' }
+                        '2' { $appConfigOwnership = 'COPE' }
+                        '3' { $appConfigOwnership = 'BYOD' }
+                        'E' { exit }
+                    }
+                }
+                '2' { $appConfig = 'No' }
+                'E' { exit }
+            }
         }
     }
     #endregion App Config
