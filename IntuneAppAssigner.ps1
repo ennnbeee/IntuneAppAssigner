@@ -187,7 +187,7 @@ function Test-JSONData {
     }
     catch {
         $validJson = $false
-        $_.Exception
+        $_.ErrorDetails.Message
     }
     if (!$validJson) {
         Write-Host "Provided JSON isn't in valid JSON format" -ForegroundColor Red
@@ -232,11 +232,16 @@ function Get-MobileApp() {
         else {
             (Invoke-MgGraphRequest -Uri $uri -Method Get -OutputType PSObject).Value
         }
-
     }
     catch {
-        Write-Error $_.Exception.Message
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function Get-AssignmentFilter() {
@@ -276,8 +281,14 @@ function Get-AssignmentFilter() {
 
     }
     catch {
-        Write-Error $_.Exception.Message
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function Get-MDMGroup() {
@@ -348,8 +359,14 @@ function Get-MDMGroup() {
 
     }
     catch {
-        Write-Error $_.Exception.Message
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function Get-AppAssignment() {
@@ -382,8 +399,14 @@ function Get-AppAssignment() {
         (Invoke-MgGraphRequest -Uri $uri -Method Get -OutputType PSObject)
     }
     catch {
-        Write-Error $_.Exception.Message
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function Remove-AppAssignment() {
@@ -422,8 +445,14 @@ function Remove-AppAssignment() {
             (Invoke-MgGraphRequest -Uri $uri -Method Delete)
         }
         catch {
-            Write-Error $_.Exception.Message
-            break
+            Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+            if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+                Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+            }
+            else {
+                Write-Host $_.Exception.Message -ForegroundColor Red
+            }
+            throw
         }
     }
     elseif ($WhatIfPreference.IsPresent) {
@@ -579,14 +608,20 @@ function Add-AppAssignment() {
         $Output = New-Object -TypeName psobject
         $Output | Add-Member -MemberType NoteProperty -Name 'mobileAppAssignments' -Value @($TargetGroups)
 
-        $JSON = $Output | ConvertTo-Json -Depth 3
+        $JSON = $Output | ConvertTo-Json -Depth 10
 
         $uri = "https://graph.microsoft.com/$graphApiVersion/$($Resource)"
         Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
     }
     catch {
-        Write-Error $_.Exception
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function New-ManagedDeviceAppConfig() {
@@ -621,8 +656,14 @@ function New-ManagedDeviceAppConfig() {
             Invoke-MgGraphRequest -Uri $uri -Method POST -Body $JSON -ContentType 'application/json' | Out-Null
         }
         catch {
-            Write-Error $_.Exception.Message
-            break
+            Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+            if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+                Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+            }
+            else {
+                Write-Host $_.Exception.Message -ForegroundColor Red
+            }
+            throw
         }
     }
     elseif ($WhatIfPreference.IsPresent) {
@@ -653,8 +694,14 @@ function Get-ManagedDeviceAppConfig() {
         (Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject).value
     }
     catch {
-        Write-Error $_.Exception.Message
-        break
+        Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+        }
+        else {
+            Write-Host $_.Exception.Message -ForegroundColor Red
+        }
+        throw
     }
 }
 function Read-YesNoChoice {
@@ -761,8 +808,8 @@ Write-Host '
 
 Write-Host 'IntuneAppAssigner - Update and review Mobile Apps Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.2 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2025-10-14' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.4.4 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-02-19' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion intro
@@ -808,7 +855,7 @@ try {
     Write-Host "`nSuccessfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
 }
 catch {
-    Write-Error $_.Exception.Message
+    Write-Error $_.ErrorDetails.Message.Message
     exit
 }
 #endregion app auth
