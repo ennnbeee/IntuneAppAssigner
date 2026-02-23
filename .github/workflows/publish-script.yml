@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-
-env:
-  SCRIPT_NAME: "IntuneAppAssigner"
-
 jobs:
   Publish-Script:
     runs-on: ubuntu-latest
