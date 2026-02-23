@@ -945,7 +945,6 @@ catch {
 
 #region scopes
 $currentScopes = $context.Scopes
-# Validate required permissions
 $missingScopes = $requiredScopes | Where-Object { $_ -notin $currentScopes }
 if ($missingScopes.Count -gt 0) {
     Write-Host 'WARNING: The following scope permissions are missing:' -ForegroundColor Yellow

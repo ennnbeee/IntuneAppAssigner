@@ -37,7 +37,6 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 ## 🔄 Updates
 
 - **v0.5.0**
-  - Now available in the PowerShell Gallery
   - Support for Apple VPP apps and license assignment
   - Improved script relaunch and error handling
 - v0.4.4
