@@ -637,7 +637,7 @@ function Add-AppAssignment() {
                     'Users' {
                         $targetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.allLicensedUsersAssignmentTarget'
                         if ($applicationType -eq '#microsoft.graph.iosVppApp') {
-                            $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $false
+                            $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
                         }
                     }
                     'Devices' {
