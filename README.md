@@ -15,9 +15,9 @@ IntuneAppAssigner is currently in Public Preview, meaning that although the it i
 Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS, macOS, or Windows apps, with the following options:
 
 - 📱 Select the app type from **Android**, **iOS/iPadOS**, **macOS**, or **Windows** apps.
-- 🎁 Select the apps you want to update or review the assignments.
+- 🎁 Select the apps you want to **update** or **review** the assignments.
 - 🔀 Select whether you want to **replace**, **add to**, or **review** the existing assignments.
-- 📝 Select whether you want to export the review of assignments to CSV.
+- 📝 Select whether you want to **export** the review of assignments to CSV.
 - 💽 Select the installation intent of the assignment from **Required**, **Available**, or **Uninstall**.
 - 🫂 Select the group for assignment from '**All users**', '**All devices**', or an **Entra ID group** with group usage logic built in.
 - 🔄 Select whether you want use **Assignment filters** and with mode '**Include**' or '**Exclude**', with prompts where apps do not support filters.
@@ -36,7 +36,11 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
 
 ## 🔄 Updates
 
-- **v0.4.4**
+- **v0.5.0**
+  - Now available in the PowerShell Gallery
+  - Support for Apple VPP apps and license assignment
+  - Improved script relaunch and error handling
+- v0.4.4
   - Improved logic around AppConfig policies
   - Improved logic around installation intents
 - v0.4.3
@@ -65,6 +69,12 @@ Once authenticated navigate the options to bulk assign your Android, iOS/iPadOS,
   - Initial release
 
 ## ⏯ Usage
+
+Install the script from the [PowerShell Gallery](https://www.powershellgallery.com/packages/IntuneAppAssigner)
+
+```PowerShell
+Install-Script -Name IntuneAppAssigner
+```
 
 Running the script without any parameters for interactive authentication:
 
