@@ -444,7 +444,7 @@ function Remove-AppAssignment() {
         try {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($resource)"
             (Invoke-MgGraphRequest -Uri $uri -Method Delete)
-            Write-Host '✅ Successfully removed App Assignment' -ForegroundColor Green
+            Write-Host '✅ Successfully removed App assignment' -ForegroundColor Green
         }
         catch {
             Write-Host "❌ Graph request to $uri failed" -ForegroundColor Red
@@ -540,17 +540,16 @@ function Add-AppAssignment() {
 
     $graphApiVersion = 'beta'
     $resource = "deviceAppManagement/mobileApps/$Id/assign"
-    $additionalAssignmentSettings = @('#microsoft.graph.iosVppApp', '#microsoft.graph.iosStoreApp', '#microsoft.graph.iosLobApp')
+    $additionalAssignmentSettings = @('#microsoft.graph.iosVppApp', '#microsoft.graph.iosStoreApp', '#microsoft.graph.iosLobApp', '#microsoft.graph.macOsVppApp')
+    $removeExistingAssignments = @('#microsoft.graph.iosVppApp', '#microsoft.graph.macOsVppApp')
     try {
         $targetGroups = @()
         $assignmentContinue = $true
         if ($action -eq 'Add') {
-            # Checking if there are Assignments already configured
             $appDetails = Get-AppAssignment -Id $Id
             $assignments = $appDetails.assignments
             if (@($assignments).count -ge 1) {
                 foreach ($assignment in $assignments) {
-
                     if (($null -ne $targetGroupId) -and ($targetGroupId -eq $assignment.target.groupId)) {
                         Write-Host "`n❗ The App $($appDetails.displayName) is already assigned to the selected Group" -ForegroundColor Yellow
                         $assignmentContinue = $false
@@ -596,27 +595,47 @@ function Add-AppAssignment() {
         }
 
         if ($assignmentContinue -eq $true) {
+            if ($applicationType -in $removeExistingAssignments) {
+                $appDetails = Get-AppAssignment -Id $Id
+                $assignments = $appDetails.assignments
+                if (@($assignments).count -ge 1) {
+                    foreach ($assignment in $assignments) {
+                        Remove-AppAssignment -Id $Id -AssignmentId $assignment.id
+                    }
+                }
+            }
+
             if ($applicationType -in $additionalAssignmentSettings) {
                 $assignmentSettings = New-Object -TypeName psobject
                 switch ($applicationType) {
                     '#microsoft.graph.iosVppApp' {
                         $assignmentSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.iosVppAppAssignmentSettings'
                         $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'preventAutoAppUpdate' -Value $false
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'vpnConfigurationId' -Value $null
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'isRemovable' -Value $null
 
                     }
                     '#microsoft.graph.iosStoreApp' {
                         $assignmentSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.iosStoreAppAssignmentSettings'
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'vpnConfigurationId' -Value $null
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'isRemovable' -Value $null
                     }
                     '#microsoft.graph.iosLobApp' {
                         $assignmentSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.iosLobAppAssignmentSettings'
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'vpnConfigurationId' -Value $null
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'isRemovable' -Value $null
+                    }
+                    '#microsoft.graph.macOsVppApp' {
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.macOsVppAppAssignmentSettings'
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
+                        $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'preventAutoAppUpdate' -Value $false
                     }
                     default {
                         $assignmentSettings = $null
                     }
                 }
-                $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'vpnConfigurationId' -Value $null
                 $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'uninstallOnDeviceRemoval' -Value $true
-                $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'isRemovable' -Value $null
                 $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'preventManagedAppBackup' -Value $true
             }
 
@@ -628,23 +647,14 @@ function Add-AppAssignment() {
             if ($targetGroupId) {
                 $targetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.groupAssignmentTarget'
                 $targetGroup | Add-Member -MemberType NoteProperty -Name 'groupId' -Value $targetGroupId
-                if ($applicationType -eq '#microsoft.graph.iosVppApp') {
-                    $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
-                }
             }
             else {
                 switch ($all) {
                     'Users' {
                         $targetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.allLicensedUsersAssignmentTarget'
-                        if ($applicationType -eq '#microsoft.graph.iosVppApp') {
-                            $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
-                        }
                     }
                     'Devices' {
                         $targetGroup | Add-Member -MemberType NoteProperty -Name '@odata.type' -Value '#microsoft.graph.allDevicesAssignmentTarget'
-                        if ($applicationType -eq '#microsoft.graph.iosVppApp') {
-                            $assignmentSettings | Add-Member -MemberType NoteProperty -Name 'useDeviceLicensing' -Value $true
-                        }
                     }
                 }
             }
@@ -667,7 +677,7 @@ function Add-AppAssignment() {
 
             $uri = "https://graph.microsoft.com/$graphApiVersion/$($resource)"
             Invoke-MgGraphRequest -Uri $uri -Method Post -Body $JSON -ContentType 'application/json'
-            Write-Host '✅ Successfully Assigned App' -ForegroundColor Green
+            Write-Host '✅ Successfully created App assignment' -ForegroundColor Green
         }
         else {
             Write-Host '⚠  No assignment changes made to App' -ForegroundColor Yellow
@@ -971,6 +981,7 @@ do {
     do {
         Start-Sleep -Seconds $rndWait
         Clear-Host
+        $apps = $null
         $choiceAppTypeOptions = @()
         Write-Host "`n📱 Select which app type:" -ForegroundColor White
         if ($null -ne $appsAND) {
@@ -1098,7 +1109,7 @@ do {
             $appAssignmentReport | Format-Table -AutoSize
             Write-Host "`n✨ All existing assignments for the selected $appTypeDisplay apps captured." -ForegroundColor Green
 
-            $decisionExport = Read-YesNoChoice -Title '📝 Export Review to CSV' -Message 'Do you want to export the above assignment report to a CSV?' -DefaultOption 1
+            $decisionExport = Read-YesNoChoice -Title '📝 Export Review to CSV' -Message 'Do you want to export the above assignment report to a CSV?' -DefaultOption 0
             if ($decisionExport -eq 1) {
                 $timeStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
                 $exportPath = "$pathToScript\AppAssignmentsReview-$appType-$timeStamp.csv"
