@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.5.0
+.VERSION 0.5.1
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.1 - Updated error handling for Graph API connection.
 v0.5.0 - Support for Apple VPP apps.
 v0.4.4 - Logic improvements for App Config, assignment intents, and bug fixes
 v0.4.3 - Option to export app assignments
@@ -948,7 +949,12 @@ try {
     Write-Host "`nSuccessfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
 }
 catch {
-    Write-Error $_.ErrorDetails.Message.Message
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+        Write-Host $_.ErrorDetails.Message -ForegroundColor Red
+    }
+    else {
+        Write-Host $_.Exception.Message -ForegroundColor Red
+    }
     exit
 }
 #endregion app auth
