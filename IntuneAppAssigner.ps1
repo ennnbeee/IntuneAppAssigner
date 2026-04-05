@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.5.1
+.VERSION 0.5.2
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.2 - Code review and optimizations.
 v0.5.1 - Updated error handling for Graph API connection.
 v0.5.0 - Support for Apple VPP apps.
 v0.4.4 - Logic improvements for App Config, assignment intents, and bug fixes
@@ -40,7 +41,7 @@ The IntuneAppAssigner script is a PowerShell tool designed to facilitate the bul
 It provides an interactive interface for administrators to select applications, define assignment parameters, and apply these settings across user and device groups efficiently.
 
 .PARAMETER appConfigPrefix
-Used to specify the prefix of the Android or iOS/iPadOS App Config policies, if not configured the default prefix of 'AppConfig-' is used.
+Used to specify the prefix of the Android or iOS/iPadOS App Config policies, if not configured no prefix is used.
 
 .PARAMETER tenantId
 Provide the Id of the Entra ID tenant to connect to.
@@ -126,7 +127,7 @@ Connect-ToGraph -tenantId $tenantId -appId $app -appSecret $secret
         Import-Module Microsoft.Graph.Authentication
         $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).major
 
-        if ($AppId -ne '') {
+        if ($null -ne $appId -or $appId -ne '') {
             $body = @{
                 grant_type    = 'client_credentials';
                 client_id     = $appId;
@@ -193,7 +194,7 @@ function Test-JSONData {
     }
     if (!$validJson) {
         Write-Host "Provided JSON isn't in valid JSON format" -ForegroundColor Red
-        break
+        throw
     }
 
 }
@@ -902,15 +903,15 @@ Write-Host '
 
 Write-Host 'IntuneAppAssigner - Update and review App Assignments in bulk.' -ForegroundColor Green
 Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.0 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-02-23' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.2 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-04-05' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion intro
 
 #region preflight
-if ($PSVersionTable.PSVersion.Major -eq 5) {
-    Write-Host 'WARNING: PowerShell 5 is not supported, use PowerShell 7 or later.' -ForegroundColor Yellow
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host 'WARNING: Earlier versions of PowerShell are not supported, use PowerShell 7 or later.' -ForegroundColor Yellow
     exit
 }
 #endregion preflight
@@ -979,10 +980,11 @@ do {
     Clear-Variable -Name choice*
     #region App Type
     #region app discovery
-    $appsAND = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('android') }
-    $appsIOS = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('ios') }
-    $appsMAC = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('macO') }
-    $appsWIN = Get-MobileApp | Where-Object { (!($_.'@odata.type').Contains('managed')) -and (($_.'@odata.type').contains('win') -or ($_.'@odata.type').contains('office')) }
+    $allMobileApps = Get-MobileApp
+    $appsAND = $allMobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('android') }
+    $appsIOS = $allMobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('ios') }
+    $appsMAC = $allMobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and ($_.'@odata.type').contains('macO') }
+    $appsWIN = $allMobileApps | Where-Object { (!($_.'@odata.type').Contains('managed')) -and (($_.'@odata.type').contains('win') -or ($_.'@odata.type').contains('office')) }
     #endregion app discovery
     do {
         Start-Sleep -Seconds $rndWait
