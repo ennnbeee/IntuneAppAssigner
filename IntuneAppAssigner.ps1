@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.5.2
+.VERSION 0.5.3
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
