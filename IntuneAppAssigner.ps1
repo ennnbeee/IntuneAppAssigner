@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.3 - Bug fixes
 v0.5.2 - Code review and optimizations.
 v0.5.1 - Updated error handling for Graph API connection.
 v0.5.0 - Support for Apple VPP apps.
@@ -834,7 +835,7 @@ function Read-YesNoChoice {
 
     return $host.ui.PromptForChoice($Title, $Message, $Options, $DefaultOption)
 }
-#endregion Functions
+#endregion
 
 #region variables
 $requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
@@ -882,39 +883,37 @@ else {
         }
     }
 }
-#endregion variables
+#endregion
 
 #region intro
 Clear-Host
 Write-Host '
- _______         __
-|_     _|.-----.|  |_.--.--.-----.-----.' -ForegroundColor Cyan -NoNewline
+░▀█▀░█▀█░▀█▀░█░█░█▀█░█▀▀
+░░█░░█░█░░█░░█░█░█░█░█▀▀
+░▀▀▀░▀░▀░░▀░░▀▀▀░▀░▀░▀▀▀' -ForegroundColor Cyan
 Write-Host '
- _|   |_ |     ||   _|  |  |     |  -__|' -ForegroundColor DarkCyan -NoNewline
+░█▀█░█▀█░█▀█
+░█▀█░█▀▀░█▀▀
+░▀░▀░▀░░░▀░░' -ForegroundColor Red
 Write-Host '
-|_______||__|__||____|_____|__|__|_____|' -ForegroundColor blue
-Write-Host '
- _______               _______               __
-|   _   |.-----.-----.|   _   |.-----.-----.|__|.-----.-----.-----.----.
-|       ||  _  |  _  ||       ||__ --|__ --||  ||  _  |     |  -__|   _|
-|___|___||   __|   __||___|___||_____|_____||__||___  |__|__|_____|__|
-         |__|  |__|                             |_____|
-' -ForegroundColor Green
+░█▀█░█▀▀░█▀▀░▀█▀░█▀▀░█▀█░█▀▀░█▀▄
+░█▀█░▀▀█░▀▀█░░█░░█░█░█░█░█▀▀░█▀▄
+░▀░▀░▀▀▀░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀▀▀░▀░▀' -ForegroundColor DarkRed
 
-Write-Host 'IntuneAppAssigner - Update and review App Assignments in bulk.' -ForegroundColor Green
-Write-Host 'Nick Benton - oddsandendpoints.co.uk' -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.2 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-04-05' -ForegroundColor Magenta
+Write-Host "`nIntuneAppAssigner - Update and review App Assignments in bulk." -ForegroundColor Green
+Write-Host "`nNick Benton - oddsandendpoints.co.uk" -NoNewline;
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.3 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-05-06' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
-#endregion intro
+#endregion
 
 #region preflight
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host 'WARNING: Earlier versions of PowerShell are not supported, use PowerShell 7 or later.' -ForegroundColor Yellow
     exit
 }
-#endregion preflight
+#endregion
 
 #region module check
 $modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
@@ -928,7 +927,7 @@ foreach ($module in $modules) {
         Import-Module -Name $module -Force
     }
 }
-#endregion module check
+#endregion
 
 #region app auth
 try {
@@ -958,7 +957,7 @@ catch {
     }
     exit
 }
-#endregion app auth
+#endregion
 
 #region scopes
 $currentScopes = $context.Scopes
@@ -973,7 +972,7 @@ else {
     Write-Host "`nAll required scope permissions are present." -ForegroundColor Green
 }
 Start-Sleep -Seconds $rndWait
-#endregion scopes
+#endregion
 
 #region Script
 do {
@@ -1603,4 +1602,4 @@ do {
     #endregion App Assignment Check
 }
 until ($decisionRelaunch -eq 0)
-#endregion Script
+#endregion
