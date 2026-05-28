@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 0.5.3
+.VERSION 0.5.4
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +13,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.4 - Updated authentication logic to allow for existing graph sessions
 v0.5.3 - Bug fixes
 v0.5.2 - Code review and optimizations.
 v0.5.1 - Updated error handling for Graph API connection.
@@ -902,8 +903,8 @@ Write-Host '
 
 Write-Host "`nIntuneAppAssigner - Update and review App Assignments in bulk." -ForegroundColor Green
 Write-Host "`nNick Benton - oddsandendpoints.co.uk" -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.3 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-05-06' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.4 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-05-28' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion
@@ -931,30 +932,31 @@ foreach ($module in $modules) {
 
 #region app auth
 try {
-    if (!$tenantId) {
-        Write-Host 'Connecting using interactive authentication' -ForegroundColor Yellow
-        Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+    if (Get-MgContext) {
+        Write-Host 'Existing Graph session detected, using current authentication context.' -ForegroundColor Yellow
+
     }
     else {
-        if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
-            Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
-            Connect-ToGraph -tenantId $tenantId -Scopes $scopes -ErrorAction Stop
+        if (!$tenantId) {
+            Write-Host 'Connecting using interactive authentication' -ForegroundColor Yellow
+            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
         }
         else {
-            Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
-            Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -ErrorAction Stop
+            if ((!$appId -and !$appSecret) -or ($appId -and !$appSecret) -or (!$appId -and $appSecret)) {
+                Write-Host 'Missing App Details, connecting using user authentication' -ForegroundColor Yellow
+                Connect-ToGraph -tenantId $tenantId -Scopes $scopes -ErrorAction Stop
+            }
+            else {
+                Write-Host 'Connecting using App authentication' -ForegroundColor Yellow
+                Connect-ToGraph -tenantId $tenantId -appId $appId -appSecret $appSecret -ErrorAction Stop
+            }
         }
     }
     $context = Get-MgContext
     Write-Host "`nSuccessfully connected to Microsoft Graph tenant $($context.TenantId)." -ForegroundColor Green
 }
 catch {
-    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
-        Write-Host $_.ErrorDetails.Message -ForegroundColor Red
-    }
-    else {
-        Write-Host $_.Exception.Message -ForegroundColor Red
-    }
+    Write-Error $_.Exception.Message
     exit
 }
 #endregion
