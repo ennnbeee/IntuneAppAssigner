@@ -1,6 +1,7 @@
+#Requires -Version 7
 <#PSScriptInfo
 
-.VERSION 0.5.4
+.VERSION 0.5.5
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -13,6 +14,7 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.5 - Updated authentication logic to allow for existing graph sessions and added additional error handling for Graph API connection.
 v0.5.4 - Updated authentication logic to allow for existing graph sessions
 v0.5.3 - Bug fixes
 v0.5.2 - Code review and optimizations.
@@ -839,6 +841,8 @@ function Read-YesNoChoice {
 #endregion
 
 #region variables
+$graphTestEndpoint = 'deviceManagement/deviceConfigurations'
+$modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
 $requiredScopes = @('DeviceManagementApps.ReadWrite.All', 'Group.Read.All', 'DeviceManagementConfiguration.Read.All')
 [String[]]$scopes = $requiredScopes -join ', '
 $rndWait = Get-Random -Minimum 1 -Maximum 2
@@ -903,21 +907,13 @@ Write-Host '
 
 Write-Host "`nIntuneAppAssigner - Update and review App Assignments in bulk." -ForegroundColor Green
 Write-Host "`nNick Benton - oddsandendpoints.co.uk" -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.4 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-05-28' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.5 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-06-03' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion
 
-#region preflight
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Host 'WARNING: Earlier versions of PowerShell are not supported, use PowerShell 7 or later.' -ForegroundColor Yellow
-    exit
-}
-#endregion
-
 #region module check
-$modules = @('Microsoft.Graph.Authentication', 'Microsoft.PowerShell.ConsoleGuiTools')
 foreach ($module in $modules) {
     Write-Host "`nChecking for $module PowerShell module..." -ForegroundColor Cyan
     if (!(Get-Module -Name $module -ListAvailable)) {
@@ -933,8 +929,17 @@ foreach ($module in $modules) {
 #region app auth
 try {
     if (Get-MgContext) {
-        Write-Host 'Existing Graph session detected, using current authentication context.' -ForegroundColor Yellow
-
+        Write-Host 'Existing Graph session detected: trying to use current authentication context.' -ForegroundColor cyan
+        try {
+            Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/$graphTestEndpoint" -Method Get -ErrorAction Stop | Out-Null
+            $authOk = $true
+        }
+        catch {
+            $authOk = $false
+        }
+    }
+    if ($authOk -eq $true) {
+        Write-Host 'Existing Graph session detected: using current authentication context.' -ForegroundColor green
     }
     else {
         if (!$tenantId) {
