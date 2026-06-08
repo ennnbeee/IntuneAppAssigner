@@ -1,7 +1,7 @@
 #Requires -Version 7
 <#PSScriptInfo
 
-.VERSION 0.5.5
+.VERSION 0.5.6
 .GUID 71c3b7d1-f435-4f11-b7c0-4acf00b7daca
 .AUTHOR Nick Benton
 .COMPANYNAME
@@ -14,22 +14,23 @@
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
+v0.5.6 - Fixed issue with deleted groups in assignments.
 v0.5.5 - Updated authentication logic to allow for existing graph sessions and added additional error handling for Graph API connection.
-v0.5.4 - Updated authentication logic to allow for existing graph sessions
-v0.5.3 - Bug fixes
+v0.5.4 - Updated authentication logic to allow for existing graph sessions.
+v0.5.3 - Bug fixes.
 v0.5.2 - Code review and optimizations.
 v0.5.1 - Updated error handling for Graph API connection.
 v0.5.0 - Support for Apple VPP apps.
-v0.4.4 - Logic improvements for App Config, assignment intents, and bug fixes
-v0.4.3 - Option to export app assignments
-v0.4.2 - Logic improvements
-v0.4.1 - Bug fixes
-v0.4.0 - Updated to include assignment review mode and uninstall intent
-v0.3.0 - Support for Windows apps
-v0.2.1 - Bug Fixes
-v0.2.0 - Supports macOS apps
+v0.4.4 - Logic improvements for App Config, assignment intents, and bug fixes.
+v0.4.3 - Option to export app assignments.
+v0.4.2 - Logic improvements.
+v0.4.1 - Bug fixes.
+v0.4.0 - Updated to include assignment review mode and uninstall intent.
+v0.3.0 - Support for Windows apps.
+v0.2.1 - Bug Fixes.
+v0.2.0 - Supports macOS apps.
 v0.1.3 - Improvements to App Config creation logic.
-v0.1.2 - Bug Fixes
+v0.1.2 - Bug Fixes.
 v0.1.1 - Allow for creation of App Config policies.
 v0.1.0 - Initial release.
 
@@ -313,7 +314,6 @@ function Get-MDMGroup() {
     .PARAMETER Id
     Specifies the Id of the group to retrieve. If not provided, all groups apps will be returned.
 
-
     #>
 
     [cmdletbinding()]
@@ -342,7 +342,12 @@ function Get-MDMGroup() {
             $uri = "https://graph.microsoft.com/$graphApiVersion/$resource"
         }
 
-        $graphResults = Invoke-MgGraphRequest -Uri $uri -Method Get -Headers @{ConsistencyLevel = 'eventual' } -OutputType PSObject
+        try {
+            $graphResults = Invoke-MgGraphRequest -Uri $uri -Method Get -Headers @{ConsistencyLevel = 'eventual' } -OutputType PSObject
+        }
+        catch {
+            $graphResults = 'WARNING group not found!'
+        }
 
         if ($null -ne $graphResults.value) {
             $results = @()
@@ -905,10 +910,10 @@ Write-Host '
 ░█▀█░▀▀█░▀▀█░░█░░█░█░█░█░█▀▀░█▀▄
 ░▀░▀░▀▀▀░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀▀▀░▀░▀' -ForegroundColor DarkRed
 
-Write-Host "`nIntuneAppAssigner - Update and review App Assignments in bulk." -ForegroundColor Green
+Write-Host "`nIntuneAppAssigner - Update and review Microsoft Intune app assignments in bulk." -ForegroundColor Green
 Write-Host "`nNick Benton - oddsandendpoints.co.uk" -NoNewline;
-Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.5 Public Preview' -ForegroundColor Yellow -NoNewline
-Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-06-03' -ForegroundColor Magenta
+Write-Host ' | Version' -NoNewline; Write-Host ' 0.5.6 Public Preview' -ForegroundColor Yellow -NoNewline
+Write-Host ' | Last updated: ' -NoNewline; Write-Host '2026-06-08' -ForegroundColor Magenta
 Write-Host "`nIf you have any feedback, open an issue at https://github.com/ennnbeee/IntuneAppAssigner/issues" -ForegroundColor Cyan
 Start-Sleep -Seconds $rndWait
 #endregion
@@ -1085,7 +1090,15 @@ do {
                         $assignmentGroupType = switch ($appAssignment.target.'@odata.type') {
                             '#microsoft.graph.allLicensedUsersAssignmentTarget' { 'All users' }
                             '#microsoft.graph.allDevicesAssignmentTarget' { 'All devices' }
-                            '#microsoft.graph.groupAssignmentTarget' { Get-MDMGroup -id $($appAssignment.target.groupId) | Select-Object -ExpandProperty displayName }
+                            '#microsoft.graph.groupAssignmentTarget' {
+                                $groupAssignment = Get-MDMGroup -id $($appAssignment.target.groupId)
+                                if ($groupAssignment.displayName) {
+                                    $groupAssignment.displayName
+                                }
+                                else {
+                                    $groupAssignment
+                                }
+                            }
                         }
                         if ($($appAssignment.target.deviceAndAppManagementAssignmentFilterType) -ne 'none') {
                             $assignmentFilterMode = (Get-Culture).TextInfo.ToTitleCase($($appAssignment.target.deviceAndAppManagementAssignmentFilterType).ToLower())
